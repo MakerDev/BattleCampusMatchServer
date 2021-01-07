@@ -1,4 +1,5 @@
 ﻿using BattleCampusMatchServer.Models;
+using BattleCampusMatchServer.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -12,16 +13,28 @@ namespace BattleCampusMatchServer.Controllers
     [ApiController]
     public class ServerController : ControllerBase
     {
-        [HttpPost("/register/{name}")]
-        public ActionResult RegisterServer(string name, IpPortInfo ipPortInfo)
+        private readonly IMatchManager _matchManager;
+
+        public ServerController(IMatchManager matchManager)
         {
-            throw new NotImplementedException();
+            _matchManager = matchManager;
         }
 
-        [HttpDelete("/unregister/{ipAddress}")]
+        [HttpPost("register/{name}")]
+        public ActionResult RegisterServer(string name, [FromQuery] int maxMatches, [FromBody] IpPortInfo ipPortInfo)
+        {
+            var server = new GameServer(name, ipPortInfo);
+            server.MaxMatches = maxMatches;
+
+            _matchManager.RegisterGameServer(server);
+
+            return Ok();
+        }
+
+        [HttpDelete("unregister/{ipAddress}")]
         public void UnRegisterServer(string ipAdress)
         {
-            throw new NotImplementedException();
+            _matchManager.UnRegisterGameServer(ipAdress);
         }
     }
 }
