@@ -10,16 +10,7 @@ namespace BattleCampusMatchServer.Services
     {
         public Dictionary<string, GameServer> Servers = new Dictionary<string, GameServer>();
 
-        public MatchManager()
-        {
-            //#if DEBUG
-            //            var localHost = new IpPortInfo();
-            //            var localServer = new GameServer("localDebug", localHost);
-            //            Servers.Add(localHost.IpAddress, localServer);
-            //#endif
-        }
-
-        public MatchCreationResult CreateNewMatch(string name)
+        public MatchCreationResult CreateNewMatch(string name, User host)
         {
             if (Servers.Count <= 0)
             {
@@ -33,20 +24,10 @@ namespace BattleCampusMatchServer.Services
             //1. Find proper server
             var server = Servers.Values.ToList()[0];
             //2. Try Create new match
-            return server.CreateMatch(name);
+            return server.CreateMatch(name, host);
         }
 
-        public void RegisterGameServer(GameServer server)
-        {
-            Servers.Add(server.IpPortInfo.IpAddress, server);
-        }
-
-        public void UnRegisterGameServer(string ipAddress)
-        {
-            Servers.Remove(ipAddress);
-        }
-
-        public MatchJoinResult JoinMatch(string serverIp, string matchID)
+        public MatchJoinResult JoinMatch(string serverIp, string matchID, User user)
         {
             var serverExists = Servers.TryGetValue(serverIp, out var server);
 
@@ -59,7 +40,20 @@ namespace BattleCampusMatchServer.Services
                 };
             }
 
-            return server.JoinMatch(matchID);
+            return server.JoinMatch(matchID, user);
+        }
+
+        public void NotifyPlayerExitGame(string serverIp, string matchID, User user)
+        {
+            var serverExists = Servers.TryGetValue(serverIp, out var server);
+
+            if (serverExists == false)
+            {
+                //TODO : properly handle error here
+                return;
+            }
+
+            server.RemovePlayerFromMatch(matchID, user);
         }
 
         //TODO : cache this
@@ -70,10 +64,20 @@ namespace BattleCampusMatchServer.Services
 
             foreach (var server in Servers.Values)
             {
-                matches.AddRange(server.AllMatches.Values);
+                matches.AddRange(server.Matches.Values);
             }
 
             return matches;
+        }
+
+        public void RegisterGameServer(GameServer server)
+        {
+            Servers.Add(server.IpPortInfo.IpAddress, server);
+        }
+
+        public void UnRegisterGameServer(string ipAddress)
+        {
+            Servers.Remove(ipAddress);
         }
     }
 }
