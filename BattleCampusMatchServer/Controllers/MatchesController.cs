@@ -16,6 +16,7 @@ namespace BattleCampusMatchServer.Controllers
     {
         private readonly IMatchManager _matchManager;
 
+        //TODO : log all actions
         public MatchesController(IMatchManager matchManager)
         {
             _matchManager = matchManager;
@@ -26,13 +27,13 @@ namespace BattleCampusMatchServer.Controllers
         {
             //HACK: don't convert to MatchDTO to reduce server load.
             var matches = _matchManager.GetMatches();
-            return _matchManager.GetMatches();
+            return matches;
         }
 
         [HttpPost("create")]
-        public ActionResult<MatchCreationResultDTO> CreateMatch([FromQuery] string name)
+        public ActionResult<MatchCreationResultDTO> CreateMatch([FromQuery] string name, [FromBody] User user)
         {
-            var matchCreationResult = _matchManager.CreateNewMatch(name);
+            var matchCreationResult = _matchManager.CreateNewMatch(name, user);
 
             if (matchCreationResult.IsCreationSuccess == false)
             {
@@ -55,9 +56,9 @@ namespace BattleCampusMatchServer.Controllers
         }
 
         [HttpPost("join")]
-        public ActionResult<MatchJoinResult> JoinMatch([FromQuery] string serverIp, [FromQuery] string matchID)
+        public ActionResult<MatchJoinResult> JoinMatch([FromQuery] string serverIp, [FromQuery] string matchID, [FromBody] User user )
         {
-            var joinResult = _matchManager.JoinMatch(serverIp, matchID);
+            var joinResult = _matchManager.JoinMatch(serverIp, matchID, user);
 
             var matchJoinResult = new MatchJoinResultDTO
             {
@@ -69,11 +70,12 @@ namespace BattleCampusMatchServer.Controllers
             return Ok(matchJoinResult);
         }
 
-        //TODO : implement this
-        [HttpPut("exit")]
-        public ActionResult PlayerQuitGame(string playerID)
+        [HttpPost("notify/exit")]
+        public ActionResult NotifyPlayerExitMatch([FromQuery] string serverIp, [FromQuery] string matchID, [FromBody] User user)
         {
-            throw new NotImplementedException();
+            _matchManager.NotifyPlayerExitGame(serverIp, matchID, user);
+
+            return Ok();
         }
     }
 }
