@@ -6,9 +6,8 @@ namespace BattleCampusMatchServer.Models
 {
     public class GameServer
     {
-        public const int MAX_MATCHES = 5;
-
         public string Name { get; private set; } = "Server";
+        public int MaxMatches { get; set; } = 5;
         public IpPortInfo IpPortInfo { get; private set; } = new IpPortInfo();
         /// <summary>
         /// Key : Match ID
@@ -24,7 +23,7 @@ namespace BattleCampusMatchServer.Models
 
         public MatchCreationResult CreateMatch(string name)
         {
-            if (Matches.Count >= MAX_MATCHES)
+            if (Matches.Count >= MaxMatches)
             {
                 return new MatchCreationResult
                 {
