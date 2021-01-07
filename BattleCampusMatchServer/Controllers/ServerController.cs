@@ -32,9 +32,9 @@ namespace BattleCampusMatchServer.Controllers
         }
 
         [HttpDelete("unregister/{ipAddress}")]
-        public void UnRegisterServer(string ipAdress)
+        public void UnRegisterServer(string ipAddress)
         {
-            _matchManager.UnRegisterGameServer(ipAdress);
+            _matchManager.UnRegisterGameServer(ipAddress);
         }
     }
 }

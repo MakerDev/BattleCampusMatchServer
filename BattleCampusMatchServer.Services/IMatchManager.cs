@@ -7,6 +7,7 @@ namespace BattleCampusMatchServer.Services
     {
         MatchCreationResult CreateNewMatch(string name);
         List<Match> GetMatches();
+        MatchJoinResult JoinMatch(string serverIp, string matchID);
         void RegisterGameServer(GameServer server);
         void UnRegisterGameServer(string ipAddress);
     }

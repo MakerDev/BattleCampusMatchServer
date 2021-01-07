@@ -12,8 +12,9 @@ namespace BattleCampusMatchServer.Models
         /// <summary>
         /// Key : Match ID
         /// Value : Match instance
+        /// This caches all matches of all server instances.
         /// </summary>
-        public Dictionary<string, Match> Matches { get; set; } = new Dictionary<string, Match>();
+        public Dictionary<string, Match> AllMatches { get; private set; } = new Dictionary<string, Match>();
 
         public GameServer(string name, IpPortInfo ipPortInfo)
         {
@@ -21,9 +22,43 @@ namespace BattleCampusMatchServer.Models
             IpPortInfo = ipPortInfo;
         }
 
+        public MatchJoinResult JoinMatch(string matchID)
+        {
+            var result = AllMatches.TryGetValue(matchID, out var match);
+
+            if (result == false)
+            {
+                return new MatchJoinResult
+                {
+                    JoinSucceeded = false,
+                    JoinFailReason = $"Match: {matchID} doesn't exist.",
+                };
+            }
+
+            if (match.CanJoin == false)
+            {
+                return new MatchJoinResult
+                {
+                    JoinFailReason = $"Match {matchID} is already full!",
+                    JoinSucceeded = false,
+                    Match = match
+                };
+            }
+
+            //HACK : change this to actual user!
+            match.Players.Add(new Player());
+
+            return new MatchJoinResult
+            {
+                JoinSucceeded = true,
+                JoinFailReason = "",
+                Match = match,
+            };
+        }
+
         public MatchCreationResult CreateMatch(string name)
         {
-            if (Matches.Count >= MaxMatches)
+            if (AllMatches.Count >= MaxMatches)
             {
                 return new MatchCreationResult
                 {
@@ -40,7 +75,7 @@ namespace BattleCampusMatchServer.Models
                 IpPortInfo = IpPortInfo
             };
 
-            Matches.Add(match.MatchID, match);
+            AllMatches.Add(match.MatchID, match);
 
             return new MatchCreationResult
             {
@@ -51,7 +86,7 @@ namespace BattleCampusMatchServer.Models
 
         public void DeleteMatch(string matchID)
         {
-            Matches.Remove(matchID);
+            AllMatches.Remove(matchID);
         }
     }
 }

@@ -12,11 +12,11 @@ namespace BattleCampusMatchServer.Services
 
         public MatchManager()
         {
-#if DEBUG
-            var localHost = new IpPortInfo();
-            var localServer = new GameServer("localDebug", localHost);
-            Servers.Add(localHost.IpAddress, localServer);
-#endif
+            //#if DEBUG
+            //            var localHost = new IpPortInfo();
+            //            var localServer = new GameServer("localDebug", localHost);
+            //            Servers.Add(localHost.IpAddress, localServer);
+            //#endif
         }
 
         public MatchCreationResult CreateNewMatch(string name)
@@ -46,6 +46,22 @@ namespace BattleCampusMatchServer.Services
             Servers.Remove(ipAddress);
         }
 
+        public MatchJoinResult JoinMatch(string serverIp, string matchID)
+        {
+            var serverExists = Servers.TryGetValue(serverIp, out var server);
+
+            if (serverExists == false)
+            {
+                return new MatchJoinResult
+                {
+                    JoinFailReason = $"Server-{serverIp} does not exists",
+                    JoinSucceeded = false,
+                };
+            }
+
+            return server.JoinMatch(matchID);
+        }
+
         //TODO : cache this
         //서버에서 매치정보관련 이벤트가 발생하면 내부 캐시를 업데이트 하는 식으로 가도 될 듯.
         public List<Match> GetMatches()
@@ -54,7 +70,7 @@ namespace BattleCampusMatchServer.Services
 
             foreach (var server in Servers.Values)
             {
-                matches.AddRange(server.Matches.Values);
+                matches.AddRange(server.AllMatches.Values);
             }
 
             return matches;

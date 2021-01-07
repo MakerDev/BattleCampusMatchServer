@@ -25,6 +25,7 @@ namespace BattleCampusMatchServer.Controllers
         public ActionResult<List<Match>> GetAllMatches()
         {
             //HACK: don't convert to MatchDTO to reduce server load.
+            var matches = _matchManager.GetMatches();
             return _matchManager.GetMatches();
         }
 
@@ -42,14 +43,7 @@ namespace BattleCampusMatchServer.Controllers
                 });
             }
 
-            var matchDTO = new MatchDTO
-            {
-                MatchID = matchCreationResult.Match.MatchID,
-                Name = matchCreationResult.Match.Name,
-                CurrentPlayers = matchCreationResult.Match.CurrentPlayers,
-                IpPortInfo = matchCreationResult.Match.IpPortInfo,
-                MaxPlayers = matchCreationResult.Match.MaxPlayers,
-            };
+            var matchDTO = MatchDTO.CreateFromMatch(matchCreationResult.Match);
 
             var result = new MatchCreationResultDTO
             {
@@ -60,7 +54,20 @@ namespace BattleCampusMatchServer.Controllers
             return Ok(result);
         }
 
+        [HttpPost("join")]
+        public ActionResult<MatchJoinResult> JoinMatch([FromQuery] string serverIp, [FromQuery] string matchID)
+        {
+            var joinResult = _matchManager.JoinMatch(serverIp, matchID);
 
+            var matchJoinResult = new MatchJoinResultDTO
+            {
+                JoinFailReason = joinResult.JoinFailReason,
+                JoinSucceeded = joinResult.JoinSucceeded,
+                Match = MatchDTO.CreateFromMatch(joinResult.Match),
+            };
+
+            return Ok(matchJoinResult);
+        }
 
         //TODO : implement this
         [HttpPut("exit")]
