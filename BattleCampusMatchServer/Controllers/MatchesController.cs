@@ -12,23 +12,24 @@ namespace BattleCampusMatchServer.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class MatchController : ControllerBase
+    public class MatchesController : ControllerBase
     {
         private readonly IMatchManager _matchManager;
 
-        public MatchController(IMatchManager matchManager)
+        public MatchesController(IMatchManager matchManager)
         {
             _matchManager = matchManager;
         }
 
         [HttpGet]
-        public ActionResult GetAllMatches()
+        public ActionResult<List<Match>> GetAllMatches()
         {
-            return Ok();
+            //HACK: don't convert to MatchDTO to reduce server load.
+            return _matchManager.GetMatches();
         }
 
-        [HttpPost("/trycreate/{name}")]
-        public ActionResult<MatchCreationResultDTO> TryCreateMatch(string name)
+        [HttpPost("create")]
+        public ActionResult<MatchCreationResultDTO> CreateMatch([FromQuery] string name)
         {
             var matchCreationResult = _matchManager.CreateNewMatch(name);
 
@@ -37,27 +38,32 @@ namespace BattleCampusMatchServer.Controllers
                 return BadRequest(new MatchCreationResultDTO
                 {
                     IsCreationSuccess = false,
-                    CreationFailReason = "Server already full",
+                    CreationFailReason = matchCreationResult.CreationFailReason,
                 });
             }
 
             var matchDTO = new MatchDTO
             {
                 MatchID = matchCreationResult.Match.MatchID,
-                Name = matchCreationResult.Match.Name
+                Name = matchCreationResult.Match.Name,
+                CurrentPlayers = matchCreationResult.Match.CurrentPlayers,
+                IpPortInfo = matchCreationResult.Match.IpPortInfo,
+                MaxPlayers = matchCreationResult.Match.MaxPlayers,
             };
 
             var result = new MatchCreationResultDTO
             {
                 IsCreationSuccess = true,
-                Match = matchDTO
+                Match = matchDTO,
             };
 
             return Ok(result);
         }
 
+
+
         //TODO : implement this
-        [HttpPut("/exit")]
+        [HttpPut("exit")]
         public ActionResult PlayerQuitGame(string playerID)
         {
             throw new NotImplementedException();
