@@ -15,7 +15,7 @@ namespace BattleCampusMatchServer.Models
             {
                 return Players.Count;
             }
-        }/
+        }
 
         public bool CanJoin
         {
@@ -24,6 +24,6 @@ namespace BattleCampusMatchServer.Models
                 return CurrentPlayersCount != MaxPlayers;
             }
         }
-        public List<Player> Players { get; set; } = new List<Player>();
+        public List<User> Players { get; set; } = new List<User>();
     }
 }

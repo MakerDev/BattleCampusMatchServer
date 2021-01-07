@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace BattleCampusMatchServer.Models
@@ -12,9 +13,8 @@ namespace BattleCampusMatchServer.Models
         /// <summary>
         /// Key : Match ID
         /// Value : Match instance
-        /// This caches all matches of all server instances.
         /// </summary>
-        public Dictionary<string, Match> AllMatches { get; private set; } = new Dictionary<string, Match>();
+        public Dictionary<string, Match> Matches { get; private set; } = new Dictionary<string, Match>();
 
         public GameServer(string name, IpPortInfo ipPortInfo)
         {
@@ -22,9 +22,27 @@ namespace BattleCampusMatchServer.Models
             IpPortInfo = ipPortInfo;
         }
 
-        public MatchJoinResult JoinMatch(string matchID)
+        public void RemovePlayerFromMatch(string matchID, User user)
         {
-            var result = AllMatches.TryGetValue(matchID, out var match);
+            var match = Matches[matchID];
+
+            var player = match.Players.FirstOrDefault(x => x.ID == user.ID);
+
+            if (player != null)
+            {
+                match.Players.Remove(player);
+            }
+
+            //Delete Match itself if no more player is left.
+            if (match.CurrentPlayersCount <= 0)
+            {
+                Matches.Remove(matchID);
+            }
+        }
+
+        public MatchJoinResult JoinMatch(string matchID, User user)
+        {
+            var result = Matches.TryGetValue(matchID, out var match);
 
             if (result == false)
             {
@@ -45,8 +63,10 @@ namespace BattleCampusMatchServer.Models
                 };
             }
 
-            //HACK : change this to actual user!
-            match.Players.Add(new Player());
+            if (match.Players.Contains(user) == false)
+            {
+                match.Players.Add(user);
+            }
 
             return new MatchJoinResult
             {
@@ -56,9 +76,9 @@ namespace BattleCampusMatchServer.Models
             };
         }
 
-        public MatchCreationResult CreateMatch(string name)
+        public MatchCreationResult CreateMatch(string name, User host)
         {
-            if (AllMatches.Count >= MaxMatches)
+            if (Matches.Count >= MaxMatches)
             {
                 return new MatchCreationResult
                 {
@@ -75,7 +95,9 @@ namespace BattleCampusMatchServer.Models
                 IpPortInfo = IpPortInfo
             };
 
-            AllMatches.Add(match.MatchID, match);
+            match.Players.Add(host);
+
+            Matches.Add(match.MatchID, match);
 
             return new MatchCreationResult
             {
@@ -86,7 +108,7 @@ namespace BattleCampusMatchServer.Models
 
         public void DeleteMatch(string matchID)
         {
-            AllMatches.Remove(matchID);
+            Matches.Remove(matchID);
         }
     }
 }
