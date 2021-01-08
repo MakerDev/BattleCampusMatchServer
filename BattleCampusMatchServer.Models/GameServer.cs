@@ -113,6 +113,13 @@ namespace BattleCampusMatchServer.Models
                 };
             }
 
+            //한 서버 인스턴스당으로 매치 메이커가 작동하므로, 한 서버 안에서만 중복 안되면 괜찮기는 함.
+            var matchID = Utils.GenerateMatchID();
+            while (Matches.ContainsKey(matchID))
+            {
+                matchID = Utils.GenerateMatchID();
+            }
+
             var match = new Match
             {
                 MatchID = Utils.GenerateMatchID(),
