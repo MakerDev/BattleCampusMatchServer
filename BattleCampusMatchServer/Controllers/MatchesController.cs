@@ -23,8 +23,6 @@ namespace BattleCampusMatchServer.Controllers
         {
             _matchManager = matchManager;
             _logger = logger;
-
-            _logger.LogInformation("Match Controller launched");
         }
 
         [HttpGet]
@@ -65,11 +63,18 @@ namespace BattleCampusMatchServer.Controllers
         {
             var joinResult = _matchManager.JoinMatch(serverIp, matchID, user);
 
+            MatchDTO match = null;
+
+            if (joinResult.JoinSucceeded)
+            {
+                match = MatchDTO.CreateFromMatch(joinResult.Match);
+            }
+
             var matchJoinResult = new MatchJoinResultDTO
             {
                 JoinFailReason = joinResult.JoinFailReason,
                 JoinSucceeded = joinResult.JoinSucceeded,
-                Match = MatchDTO.CreateFromMatch(joinResult.Match),
+                Match = match,
             };
 
             return Ok(matchJoinResult);
