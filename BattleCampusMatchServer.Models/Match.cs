@@ -25,5 +25,10 @@ namespace BattleCampusMatchServer.Models
             }
         }
         public List<User> Players { get; set; } = new List<User>();
+
+        public override string ToString()
+        {
+            return $"<{Name}-{MatchID}>";
+        }
     }
 }

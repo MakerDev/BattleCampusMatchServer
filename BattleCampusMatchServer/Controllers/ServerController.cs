@@ -2,6 +2,7 @@
 using BattleCampusMatchServer.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,16 +15,20 @@ namespace BattleCampusMatchServer.Controllers
     public class ServerController : ControllerBase
     {
         private readonly IMatchManager _matchManager;
+        private readonly ILogger<ServerController> _logger;
+        private readonly ILoggerFactory _loggerFactory;
 
-        public ServerController(IMatchManager matchManager)
+        public ServerController(IMatchManager matchManager, ILogger<ServerController> logger, ILoggerFactory loggerFactory)
         {
             _matchManager = matchManager;
+            _logger = logger;
+            _loggerFactory = loggerFactory;
         }
 
         [HttpPost("register/{name}")]
         public ActionResult RegisterServer(string name, [FromQuery] int maxMatches, [FromBody] IpPortInfo ipPortInfo)
         {
-            var server = new GameServer(name, ipPortInfo);
+            var server = new GameServer(name, ipPortInfo, _loggerFactory);
             server.MaxMatches = maxMatches;
 
             _matchManager.RegisterGameServer(server);

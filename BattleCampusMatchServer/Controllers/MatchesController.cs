@@ -3,6 +3,7 @@ using BattleCampusMatchServer.Models.DTOs;
 using BattleCampusMatchServer.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,11 +16,15 @@ namespace BattleCampusMatchServer.Controllers
     public class MatchesController : ControllerBase
     {
         private readonly IMatchManager _matchManager;
+        private readonly ILogger<MatchesController> _logger;
 
         //TODO : log all actions
-        public MatchesController(IMatchManager matchManager)
+        public MatchesController(IMatchManager matchManager, ILogger<MatchesController> logger)
         {
             _matchManager = matchManager;
+            _logger = logger;
+
+            _logger.LogInformation("Match Controller launched");
         }
 
         [HttpGet]

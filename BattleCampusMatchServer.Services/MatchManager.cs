@@ -1,4 +1,5 @@
 ﻿using BattleCampusMatchServer.Models;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,12 +9,27 @@ namespace BattleCampusMatchServer.Services
 {
     public class MatchManager : IMatchManager
     {
-        public Dictionary<string, GameServer> Servers = new Dictionary<string, GameServer>();
+        //TODO : change this to handle multiple server instances on a single server
+        /// <summary>
+        /// Key : Server Ip
+        /// </summary>
+        public Dictionary<string, GameServer> Servers { get; private set; } = new Dictionary<string, GameServer>();
+
+        private readonly ILogger<MatchManager> _logger;
+
+        private int _lastUsedServerIndex = 0;
+
+        public MatchManager(ILogger<MatchManager> logger)
+        {
+            _logger = logger;
+        }
 
         public MatchCreationResult CreateNewMatch(string name, User host)
         {
             if (Servers.Count <= 0)
             {
+                _logger.LogWarning($"No server available : User {host.Name} tried to create new match");
+
                 return new MatchCreationResult
                 {
                     IsCreationSuccess = false,
@@ -21,8 +37,11 @@ namespace BattleCampusMatchServer.Services
                 };
             }
 
-            //1. Find proper server
-            var server = Servers.Values.ToList()[0];
+            //1. Find proper server : currently round robbin
+            var server = Servers.Values.ToList()[_lastUsedServerIndex];
+            _lastUsedServerIndex = (_lastUsedServerIndex + 1) % Servers.Count;
+            _logger.LogInformation($"Server <{server.Name}|{server.IpPortInfo}> is selected for match <{name}>");
+
             //2. Try Create new match
             return server.CreateMatch(name, host);
         }
@@ -72,12 +91,21 @@ namespace BattleCampusMatchServer.Services
 
         public void RegisterGameServer(GameServer server)
         {
+            if (Servers.ContainsKey(server.IpPortInfo.IpAddress))
+            {
+                _logger.LogError($"Trying to register duplicate server => {server}");
+
+                return;
+            }
+
             Servers.Add(server.IpPortInfo.IpAddress, server);
+            _logger.LogInformation($"Registerd server {server}");
         }
 
         public void UnRegisterGameServer(string ipAddress)
         {
             Servers.Remove(ipAddress);
+            _logger.LogInformation($"Removed server => {ipAddress}");
         }
     }
 }

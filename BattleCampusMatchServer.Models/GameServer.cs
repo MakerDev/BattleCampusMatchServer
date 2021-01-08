@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,6 +8,8 @@ namespace BattleCampusMatchServer.Models
 {
     public class GameServer
     {
+        private readonly ILogger<GameServer> _logger;
+
         public string Name { get; private set; } = "Server";
         public int MaxMatches { get; set; } = 5;
         public IpPortInfo IpPortInfo { get; private set; } = new IpPortInfo();
@@ -16,15 +19,23 @@ namespace BattleCampusMatchServer.Models
         /// </summary>
         public Dictionary<string, Match> Matches { get; private set; } = new Dictionary<string, Match>();
 
-        public GameServer(string name, IpPortInfo ipPortInfo)
+        public GameServer(string name, IpPortInfo ipPortInfo, ILoggerFactory loggerFactory)
         {
             Name = name;
             IpPortInfo = ipPortInfo;
+            _logger = loggerFactory.CreateLogger<GameServer>();
+            _logger.LogInformation($"{this} has been launched!");
         }
 
         public void RemovePlayerFromMatch(string matchID, User user)
         {
-            var match = Matches[matchID];
+            var hasMatch = Matches.TryGetValue(matchID, out var match);
+
+            if (hasMatch == false)
+            {
+                _logger.LogError($"{user} tried to exit {matchID} which doesn't exist");
+                return;
+            }
 
             var player = match.Players.FirstOrDefault(x => x.ID == user.ID);
 
@@ -32,11 +43,17 @@ namespace BattleCampusMatchServer.Models
             {
                 match.Players.Remove(player);
             }
+            else
+            {
+                _logger.LogError($"{user} tried to exit {match} which he is not joining");
+            }
 
             //Delete Match itself if no more player is left.
             if (match.CurrentPlayersCount <= 0)
             {
-                Matches.Remove(matchID);
+                _logger.LogInformation($"Removed {match} as no more player is left");
+
+                DeleteMatch(matchID);
             }
         }
 
@@ -46,6 +63,7 @@ namespace BattleCampusMatchServer.Models
 
             if (result == false)
             {
+                _logger.LogError($"{user} tried to join {matchID} which doesn't exist");
                 return new MatchJoinResult
                 {
                     JoinSucceeded = false,
@@ -66,6 +84,11 @@ namespace BattleCampusMatchServer.Models
             if (match.Players.Contains(user) == false)
             {
                 match.Players.Add(user);
+                _logger.LogInformation($"{user} joined to {match}");
+            }
+            else
+            {
+                _logger.LogWarning($"{user} is already joining {match}");
             }
 
             return new MatchJoinResult
@@ -80,6 +103,8 @@ namespace BattleCampusMatchServer.Models
         {
             if (Matches.Count >= MaxMatches)
             {
+                _logger.LogError($"Couldn't create match <{name}> as server {this} is already full");
+
                 return new MatchCreationResult
                 {
                     IsCreationSuccess = false,
@@ -99,6 +124,8 @@ namespace BattleCampusMatchServer.Models
 
             Matches.Add(match.MatchID, match);
 
+            _logger.LogInformation($"Successfully created match {name} on server {this}");
+
             return new MatchCreationResult
             {
                 IsCreationSuccess = true,
@@ -108,7 +135,13 @@ namespace BattleCampusMatchServer.Models
 
         public void DeleteMatch(string matchID)
         {
+            _logger.LogInformation($"Delete match : {matchID} from server {this}");
             Matches.Remove(matchID);
+        }
+
+        public override string ToString()
+        {
+            return $"<{Name}={IpPortInfo}>";
         }
     }
 }
