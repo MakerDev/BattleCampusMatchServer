@@ -3,11 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30803.129
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleCampusMatchServer", "BattleCampusMatchServer\BattleCampusMatchServer.csproj", "{0E74712F-9312-4EB2-ACA9-4E21D018FA75}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BattleCampusMatchServer", "BattleCampusMatchServer\BattleCampusMatchServer.csproj", "{0E74712F-9312-4EB2-ACA9-4E21D018FA75}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleCampusMatchServer.Models", "BattleCampusMatchServer.Models\BattleCampusMatchServer.Models.csproj", "{C43022E9-3826-44EE-AF52-FB342508E04C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BattleCampusMatchServer.Models", "BattleCampusMatchServer.Models\BattleCampusMatchServer.Models.csproj", "{C43022E9-3826-44EE-AF52-FB342508E04C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleCampusMatchServer.Services", "BattleCampusMatchServer.Services\BattleCampusMatchServer.Services.csproj", "{0227FA9B-DE80-4C98-91D7-8927F709A81F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BattleCampusMatchServer.Services", "BattleCampusMatchServer.Services\BattleCampusMatchServer.Services.csproj", "{0227FA9B-DE80-4C98-91D7-8927F709A81F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BattleCampus.MatchServer", "BattleCampus.MatchServer", "{D8DF767B-49C8-4B0B-8D35-1348D788C816}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,6 +32,11 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{0E74712F-9312-4EB2-ACA9-4E21D018FA75} = {D8DF767B-49C8-4B0B-8D35-1348D788C816}
+		{C43022E9-3826-44EE-AF52-FB342508E04C} = {D8DF767B-49C8-4B0B-8D35-1348D788C816}
+		{0227FA9B-DE80-4C98-91D7-8927F709A81F} = {D8DF767B-49C8-4B0B-8D35-1348D788C816}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BFCA426E-9319-46C4-8D3A-4647383EC474}
