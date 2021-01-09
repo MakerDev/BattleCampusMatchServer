@@ -15,13 +15,11 @@ namespace BattleCampusMatchServer.Controllers
     public class ServerController : ControllerBase
     {
         private readonly IMatchManager _matchManager;
-        private readonly ILogger<ServerController> _logger;
         private readonly ILoggerFactory _loggerFactory;
 
-        public ServerController(IMatchManager matchManager, ILogger<ServerController> logger, ILoggerFactory loggerFactory)
+        public ServerController(IMatchManager matchManager, ILoggerFactory loggerFactory)
         {
             _matchManager = matchManager;
-            _logger = logger;
             _loggerFactory = loggerFactory;
         }
 

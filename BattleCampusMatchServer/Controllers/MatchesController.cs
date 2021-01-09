@@ -16,13 +16,11 @@ namespace BattleCampusMatchServer.Controllers
     public class MatchesController : ControllerBase
     {
         private readonly IMatchManager _matchManager;
-        private readonly ILogger<MatchesController> _logger;
 
         //TODO : log all actions
-        public MatchesController(IMatchManager matchManager, ILogger<MatchesController> logger)
+        public MatchesController(IMatchManager matchManager)
         {
             _matchManager = matchManager;
-            _logger = logger;
         }
 
         [HttpGet]
@@ -40,7 +38,7 @@ namespace BattleCampusMatchServer.Controllers
 
             if (matchCreationResult.IsCreationSuccess == false)
             {
-                return BadRequest(new MatchCreationResultDTO
+                return Ok(new MatchCreationResultDTO
                 {
                     IsCreationSuccess = false,
                     CreationFailReason = matchCreationResult.CreationFailReason,
