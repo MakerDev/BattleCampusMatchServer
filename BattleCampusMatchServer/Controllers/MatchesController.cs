@@ -1,4 +1,5 @@
-﻿using BattleCampusMatchServer.Models;
+﻿using BattleCampus.Core;
+using BattleCampusMatchServer.Models;
 using BattleCampusMatchServer.Models.DTOs;
 using BattleCampusMatchServer.Services;
 using Microsoft.AspNetCore.Http;
@@ -32,7 +33,7 @@ namespace BattleCampusMatchServer.Controllers
         }
 
         [HttpPost("create")]
-        public ActionResult<MatchCreationResultDTO> CreateMatch([FromQuery] string name, [FromBody] User user)
+        public ActionResult<MatchCreationResultDTO> CreateMatch([FromQuery] string name, [FromBody] GameUser user)
         {
 
 
@@ -59,7 +60,7 @@ namespace BattleCampusMatchServer.Controllers
         }
 
         [HttpPost("join")]
-        public ActionResult<MatchJoinResult> JoinMatch([FromQuery] string serverIp, [FromQuery] string matchID, [FromBody] User user )
+        public ActionResult<MatchJoinResult> JoinMatch([FromQuery] string serverIp, [FromQuery] string matchID, [FromBody] GameUser user )
         {
             var joinResult = _matchManager.JoinMatch(serverIp, matchID, user);
 
@@ -81,7 +82,7 @@ namespace BattleCampusMatchServer.Controllers
         }
 
         [HttpPost("notify/exit")]
-        public ActionResult NotifyPlayerExitMatch([FromQuery] string serverIp, [FromQuery] string matchID, [FromBody] User user)
+        public ActionResult NotifyPlayerExitMatch([FromQuery] string serverIp, [FromQuery] string matchID, [FromBody] GameUser user)
         {
             _matchManager.NotifyPlayerExitGame(serverIp, matchID, user);
 
@@ -89,7 +90,7 @@ namespace BattleCampusMatchServer.Controllers
         }
 
         [HttpPost("notify/connect")]
-        public ActionResult NotifyUserConnect([FromQuery] string serverIp, [FromQuery] int connectionID, [FromBody] User user)
+        public ActionResult NotifyUserConnect([FromQuery] string serverIp, [FromQuery] int connectionID, [FromBody] GameUser user)
         {
             user.ConnectionID = connectionID;
 

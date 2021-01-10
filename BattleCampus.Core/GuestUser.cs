@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BattleCampusMatchServer.Models
+namespace BattleCampus.Core
 {
-    public class GuestUser : User
+    public class GuestUser : GameUser
     {
         public GuestUser()
         {

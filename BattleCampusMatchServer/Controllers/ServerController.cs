@@ -1,4 +1,4 @@
-﻿using BattleCampusMatchServer.Models;
+﻿using BattleCampus.Core;
 using BattleCampusMatchServer.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

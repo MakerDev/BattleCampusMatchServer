@@ -1,4 +1,4 @@
-﻿namespace BattleCampusMatchServer.Models
+﻿namespace BattleCampus.Core
 {
     public class IpPortInfo
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace BattleCampusMatchServer.Models
+namespace BattleCampus.Core
 {
     public class Match
     {
@@ -24,7 +24,7 @@ namespace BattleCampusMatchServer.Models
                 return CurrentPlayersCount != MaxPlayers;
             }
         }
-        public List<User> Players { get; set; } = new List<User>();
+        public List<GameUser> Players { get; set; } = new List<GameUser>();
 
         public override string ToString()
         {

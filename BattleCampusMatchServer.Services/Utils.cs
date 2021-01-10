@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BattleCampusMatchServer.Models
+namespace BattleCampusMatchServer.Services
 {
     public class Utils
     {

@@ -1,10 +1,12 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using BattleCampus.Core;
+using BattleCampusMatchServer.Models;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace BattleCampusMatchServer.Models
+namespace BattleCampusMatchServer.Services
 {
     public class GameServer
     {
@@ -23,7 +25,7 @@ namespace BattleCampusMatchServer.Models
         /// Key : connectionId of the user
         /// Value : connected User
         /// </summary>
-        public Dictionary<int, User> UserConnections { get; private set; } = new Dictionary<int, User>();
+        public Dictionary<int, GameUser> UserConnections { get; private set; } = new Dictionary<int, GameUser>();
 
         public GameServer(string name, IpPortInfo ipPortInfo, ILoggerFactory loggerFactory)
         {
@@ -54,7 +56,7 @@ namespace BattleCampusMatchServer.Models
             UserConnections.Remove(connectionID);
         }
 
-        public void ConnectUser(User user)
+        public void ConnectUser(GameUser user)
         {
             var validMatch = Matches.TryGetValue(user.MatchID, out var match);
 
@@ -75,7 +77,7 @@ namespace BattleCampusMatchServer.Models
             }
         }
 
-        public void RemovePlayerFromMatch(string matchID, User user)
+        public void RemovePlayerFromMatch(string matchID, GameUser user)
         {
             var hasMatch = Matches.TryGetValue(matchID, out var match);
 
@@ -108,7 +110,7 @@ namespace BattleCampusMatchServer.Models
             }
         }
 
-        public MatchJoinResult JoinMatch(string matchID, User user)
+        public MatchJoinResult JoinMatch(string matchID, GameUser user)
         {
             var result = Matches.TryGetValue(matchID, out var match);
 
@@ -152,7 +154,7 @@ namespace BattleCampusMatchServer.Models
             };
         }
 
-        public MatchCreationResult CreateMatch(string name, User host)
+        public MatchCreationResult CreateMatch(string name, GameUser host)
         {
             if (Matches.Count >= MaxMatches)
             {

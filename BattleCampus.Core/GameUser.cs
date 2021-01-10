@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BattleCampusMatchServer.Models
+namespace BattleCampus.Core
 {
-    public class User
+    public class GameUser
     {
         public Guid ID { get; set; }
         public int ConnectionID { get; set; } = -1;
@@ -15,7 +15,7 @@ namespace BattleCampusMatchServer.Models
         /// currently joining match id
         /// </summary>
         public string MatchID { get; set; } = null;
-        
+
 
         public override string ToString()
         {
