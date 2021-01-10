@@ -34,6 +34,8 @@ namespace BattleCampusMatchServer.Controllers
         [HttpPost("create")]
         public ActionResult<MatchCreationResultDTO> CreateMatch([FromQuery] string name, [FromBody] User user)
         {
+
+
             var matchCreationResult = _matchManager.CreateNewMatch(name, user);
 
             if (matchCreationResult.IsCreationSuccess == false)
@@ -82,6 +84,24 @@ namespace BattleCampusMatchServer.Controllers
         public ActionResult NotifyPlayerExitMatch([FromQuery] string serverIp, [FromQuery] string matchID, [FromBody] User user)
         {
             _matchManager.NotifyPlayerExitGame(serverIp, matchID, user);
+
+            return Ok();
+        }
+
+        [HttpPost("notify/connect")]
+        public ActionResult NotifyUserConnect([FromQuery] string serverIp, [FromQuery] int connectionID, [FromBody] User user)
+        {
+            user.ConnectionID = connectionID;
+
+            _matchManager.ConnectUser(serverIp, user);
+
+            return Ok();
+        }
+
+        [HttpPost("notify/disconnect")]
+        public ActionResult NotifyUserDisconnect([FromQuery] string serverIp, [FromQuery] int connectionID)
+        {
+            _matchManager.DisconnectUser(serverIp, connectionID);
 
             return Ok();
         }

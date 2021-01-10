@@ -19,12 +19,60 @@ namespace BattleCampusMatchServer.Models
         /// </summary>
         public Dictionary<string, Match> Matches { get; private set; } = new Dictionary<string, Match>();
 
+        /// <summary>
+        /// Key : connectionId of the user
+        /// Value : connected User
+        /// </summary>
+        public Dictionary<int, User> UserConnections { get; private set; } = new Dictionary<int, User>();
+
         public GameServer(string name, IpPortInfo ipPortInfo, ILoggerFactory loggerFactory)
         {
             Name = name;
             IpPortInfo = ipPortInfo;
             _logger = loggerFactory.CreateLogger<GameServer>();
             _logger.LogInformation($"{this} has been launched!");
+        }
+
+        public void DisconnectUser(int connectionID)
+        {
+            var hasUser = UserConnections.TryGetValue(connectionID, out var user);
+
+            if (hasUser == false)
+            {
+                _logger.LogWarning($"Disconnecting with connectionID:{connectionID} failed");
+
+                return;
+            }
+
+            if (user.MatchID != null)
+            {
+                RemovePlayerFromMatch(user.MatchID, user);
+                _logger.LogInformation($"Disconnected {user} with connectionID: {connectionID} who was joining {user.MatchID}");
+                user.MatchID = null;
+            }
+
+            UserConnections.Remove(connectionID);
+        }
+
+        public void ConnectUser(User user)
+        {
+            var validMatch = Matches.TryGetValue(user.MatchID, out var match);
+
+            if (validMatch == false)
+            {
+                _logger.LogError($"Failed to connect {user} as Match {user.MatchID} doesn't exist");
+            }
+
+            _logger.LogInformation($"{user} is connected with connectionID : {user.ConnectionID} who is joining {match}");
+
+            if (UserConnections.ContainsKey(user.ConnectionID) == false)
+            {
+                UserConnections.Add(user.ConnectionID, user);
+            }
+            else
+            {
+                _logger.LogWarning($"Duplicate connection with ID:{user.ConnectionID} and User:{user}");
+            }
         }
 
         public void RemovePlayerFromMatch(string matchID, User user)
@@ -47,6 +95,9 @@ namespace BattleCampusMatchServer.Models
             {
                 _logger.LogError($"{user} tried to exit {match} which he is not joining");
             }
+
+            //Set current joining match to null;
+            user.MatchID = null;
 
             //Delete Match itself if no more player is left.
             if (match.CurrentPlayersCount <= 0)
@@ -80,6 +131,8 @@ namespace BattleCampusMatchServer.Models
                     Match = match
                 };
             }
+
+            user.MatchID = matchID;
 
             if (match.Players.Contains(user) == false)
             {
@@ -127,6 +180,8 @@ namespace BattleCampusMatchServer.Models
                 IpPortInfo = IpPortInfo
             };
 
+            host.MatchID = match.MatchID;
+
             match.Players.Add(host);
 
             Matches.Add(match.MatchID, match);
@@ -142,7 +197,16 @@ namespace BattleCampusMatchServer.Models
 
         public void DeleteMatch(string matchID)
         {
+            var hasMatch = Matches.TryGetValue(matchID, out var match);
+
+            if (hasMatch == false)
+            {
+                _logger.LogError($"Tried to delete not existing match:{matchID} from {this}");
+                return;
+            }
+
             _logger.LogInformation($"Delete match : {matchID} from server {this}");
+
             Matches.Remove(matchID);
         }
 
