@@ -6,6 +6,9 @@ namespace BattleCampus.Core
 {
     public class GameUser
     {
+        /// <summary>
+        /// Guid for persisted user
+        /// </summary>
         public Guid ID { get; set; }
         public int ConnectionID { get; set; } = -1;
         public string StudentID { get; set; }
@@ -15,7 +18,6 @@ namespace BattleCampus.Core
         /// currently joining match id
         /// </summary>
         public string MatchID { get; set; } = null;
-
 
         public override string ToString()
         {

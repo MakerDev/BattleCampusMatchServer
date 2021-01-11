@@ -9,6 +9,7 @@ namespace BattleCampus.Core
         public string MatchID { get; set; }
         public IpPortInfo IpPortInfo { get; set; }
         public int MaxPlayers { get; set; } = 6;
+        public List<GameUser> Players { get; set; } = new List<GameUser>();
         public int CurrentPlayersCount
         {
             get
@@ -24,7 +25,6 @@ namespace BattleCampus.Core
                 return CurrentPlayersCount != MaxPlayers;
             }
         }
-        public List<GameUser> Players { get; set; } = new List<GameUser>();
 
         public override string ToString()
         {
