@@ -5,10 +5,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Logging.AzureAppServices" Version="5.0.1" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BattleCampus.Core\BattleCampus.Core.csproj" />
+    <ProjectReference Include="..\BattleCampus.ManagerServer.Application\BattleCampus.MatchServer.Application.csproj" />
+    <ProjectReference Include="..\BattleCampus.ReportServer.Persistence\BattleCampus.Persistence.csproj" />
     <ProjectReference Include="..\BattleCampusMatchServer.Models\BattleCampusMatchServer.Models.csproj" />
     <ProjectReference Include="..\BattleCampusMatchServer.Services\BattleCampusMatchServer.Services.csproj" />
   </ItemGroup>

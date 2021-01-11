@@ -19,7 +19,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BattleCampus.Core\BattleCampus.Core.csproj" />
-    <ProjectReference Include="..\BattleCampus.ManagerServer.Domain\BattleCampus.Dashboard.Domain.csproj" />
   </ItemGroup>
 
 </Project>
