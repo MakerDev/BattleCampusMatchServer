@@ -30,6 +30,7 @@ namespace BattleCampus.Dashboard
             services.AddServerSideBlazor();
             services.AddControllers();
             services.AddSingleton<WeatherForecastService>();
+            services.AddHttpClient();
 
             services.AddCors((options) =>
             {
