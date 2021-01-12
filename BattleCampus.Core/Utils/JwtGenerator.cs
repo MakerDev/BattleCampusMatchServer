@@ -22,7 +22,7 @@ namespace BattleCampus.Core.Utils
             var claims = new List<Claim>
             {
                 //Use Student ID as name
-                new Claim(JwtRegisteredClaimNames.NameId, user.StudentID),
+                new Claim(JwtRegisteredClaimNames.NameId, user.Id),
             };
 
             // generate signing credentials

@@ -1,9 +1,12 @@
 using BattleCampus.Core.Middleware;
+using BattleCampus.Persistence;
 using BattleCampusMatchServer.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -26,8 +29,13 @@ namespace BattleCampusMatchServer
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+            services.AddIdentity<IdentityUser, IdentityRole>()
+                .AddEntityFrameworkStores<ApplicationDbContext>();
+
             services.AddControllers();
-            services.AddSingleton<IMatchManager, MatchManager>();
+            services.AddScoped<IMatchManager, MatchManager>();
             services.AddCors((options) =>
             {
                 options.AddPolicy("allow-all", (builder) =>

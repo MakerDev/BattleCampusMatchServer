@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BattleCampus.ManageServer.Persistence
+namespace BattleCampus.Persistence
 {
     public class ApplicationDbContext : IdentityDbContext
     {
@@ -24,6 +24,8 @@ namespace BattleCampus.ManageServer.Persistence
 
             builder.Entity<GameServerModel>()
                 .OwnsOne(x => x.IpPortInfo);
+
+            builder.Entity<GameServerModel>().Property(x => x.State).HasConversion<string>();
         }
     }
 }

@@ -1,9 +1,9 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace BattleCampus.ManageServer.Persistence.Migrations
+namespace BattleCampus.Persistence.Migrations
 {
-    public partial class InitialMigration : Migration
+    public partial class initialMigration : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -44,6 +44,36 @@ namespace BattleCampus.ManageServer.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GameUsers",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    TotalkillCount = table.Column<int>(type: "int", nullable: false),
+                    TotalPlayCount = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GameUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Servers",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    MaxMatches = table.Column<int>(type: "int", nullable: false),
+                    IpPortInfo_IpAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IpPortInfo_DesktopPort = table.Column<int>(type: "int", nullable: true),
+                    IpPortInfo_WebsocketPort = table.Column<int>(type: "int", nullable: true),
+                    State = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Servers", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -92,8 +122,8 @@ namespace BattleCampus.ManageServer.Persistence.Migrations
                 name: "AspNetUserLogins",
                 columns: table => new
                 {
-                    LoginProvider = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
-                    ProviderKey = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ProviderKey = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     ProviderDisplayName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
@@ -137,8 +167,8 @@ namespace BattleCampus.ManageServer.Persistence.Migrations
                 columns: table => new
                 {
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    LoginProvider = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
@@ -208,6 +238,12 @@ namespace BattleCampus.ManageServer.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens");
+
+            migrationBuilder.DropTable(
+                name: "GameUsers");
+
+            migrationBuilder.DropTable(
+                name: "Servers");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

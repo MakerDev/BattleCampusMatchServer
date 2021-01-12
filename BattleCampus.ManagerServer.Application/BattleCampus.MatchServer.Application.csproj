@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BattleCampus.ReportServer.Persistence\BattleCampus.Persistence.csproj" />
+    <ProjectReference Include="..\BattleCampusMatchServer.Services\BattleCampusMatchServer.Services.csproj" />
   </ItemGroup>
 
 </Project>
