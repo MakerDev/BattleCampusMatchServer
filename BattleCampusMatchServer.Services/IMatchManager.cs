@@ -1,18 +1,18 @@
 ﻿using BattleCampus.Core;
 using BattleCampusMatchServer.Models;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace BattleCampusMatchServer.Services
 {
     public interface IMatchManager
     {
-        void ConnectUser(string serverIp, GameUser user);
+        void ConnectUser(IpPortInfo serverIpInfo, GameUser user);
         MatchCreationResult CreateNewMatch(string name, GameUser host);
-        void DisconnectUser(string serverIp, int connectionID);
+        void DisconnectUser(IpPortInfo serverIp, int connectionID);
         List<Match> GetMatches();
-        MatchJoinResult JoinMatch(string serverIp, string matchID, GameUser user);
-        void NotifyPlayerExitGame(string serverIp, string matchID, GameUser user);
-        void RegisterGameServer(GameServer server);
-        void UnRegisterGameServer(string ipAddress);
+        MatchJoinResult JoinMatch(IpPortInfo serverIp, string matchID, GameUser user);
+        Task RegisterGameServerAsync(string name, int maxMatches, IpPortInfo ipPortInfo);
+        Task UnRegisterGameServerAsync(IpPortInfo serverIp);
     }
 }

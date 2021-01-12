@@ -20,17 +20,21 @@ namespace BattleCampusMatchServer.Services
         /// Value : Match instance
         /// </summary>
         public Dictionary<string, Match> Matches { get; private set; } = new Dictionary<string, Match>();
-
+        private readonly object _matchLock = new object();
         /// <summary>
         /// Key : connectionId of the user
         /// Value : connected User
         /// </summary>
         public Dictionary<int, GameUser> UserConnections { get; private set; } = new Dictionary<int, GameUser>();
+        private readonly object _userConnectionLock = new object();
 
-        public GameServer(string name, IpPortInfo ipPortInfo, ILoggerFactory loggerFactory)
+
+        public GameServer(string name, IpPortInfo ipPortInfo, ILoggerFactory loggerFactory, int maxMatches = 5)
         {
             Name = name;
             IpPortInfo = ipPortInfo;
+            MaxMatches = maxMatches;
+
             _logger = loggerFactory.CreateLogger<GameServer>();
             _logger.LogInformation($"{this} has been launched!");
         }
@@ -53,7 +57,10 @@ namespace BattleCampusMatchServer.Services
                 user.MatchID = null;
             }
 
-            UserConnections.Remove(connectionID);
+            lock (_userConnectionLock)
+            {
+                UserConnections.Remove(connectionID);
+            }
         }
 
         public void ConnectUser(GameUser user)
@@ -69,7 +76,10 @@ namespace BattleCampusMatchServer.Services
 
             if (UserConnections.ContainsKey(user.ConnectionID) == false)
             {
-                UserConnections.Add(user.ConnectionID, user);
+                lock (_userConnectionLock)
+                {
+                    UserConnections.Add(user.ConnectionID, user);
+                }
             }
             else
             {
@@ -77,7 +87,7 @@ namespace BattleCampusMatchServer.Services
             }
         }
 
-        public void RemovePlayerFromMatch(string matchID, GameUser user)
+        private void RemovePlayerFromMatch(string matchID, GameUser user)
         {
             var hasMatch = Matches.TryGetValue(matchID, out var match);
 
@@ -87,13 +97,14 @@ namespace BattleCampusMatchServer.Services
                 return;
             }
 
-            var player = match.Players.FirstOrDefault(x => x.ID == user.ID);
+            bool removeResult;  
 
-            if (player != null)
+            lock (_matchLock)
             {
-                match.Players.Remove(player);
+                removeResult = match.Players.Remove(user);
             }
-            else
+
+            if (removeResult == false)
             {
                 _logger.LogError($"{user} tried to exit {match} which he is not joining");
             }
@@ -138,7 +149,11 @@ namespace BattleCampusMatchServer.Services
 
             if (match.Players.Contains(user) == false)
             {
-                match.Players.Add(user);
+                lock (_matchLock)
+                {
+                    match.Players.Add(user);
+                }
+
                 _logger.LogInformation($"{user} joined to {match}");
             }
             else
@@ -184,7 +199,10 @@ namespace BattleCampusMatchServer.Services
 
             host.MatchID = match.MatchID;
 
-            match.Players.Add(host);
+            lock (_matchLock)
+            {
+                match.Players.Add(host);
+            }
 
             Matches.Add(match.MatchID, match);
 
@@ -199,7 +217,7 @@ namespace BattleCampusMatchServer.Services
 
         public void DeleteMatch(string matchID)
         {
-            var hasMatch = Matches.TryGetValue(matchID, out var match);
+            var hasMatch = Matches.ContainsKey(matchID);
 
             if (hasMatch == false)
             {
@@ -209,7 +227,10 @@ namespace BattleCampusMatchServer.Services
 
             _logger.LogInformation($"Delete match : {matchID} from server {this}");
 
-            Matches.Remove(matchID);
+            lock (_matchLock)
+            {
+                Matches.Remove(matchID);
+            }
         }
 
         public override string ToString()
