@@ -1,5 +1,5 @@
 ﻿using BattleCampus.Core;
-using BattleCampus.ManageServer.Persistence;
+using BattleCampus.Persistence;
 using MediatR;
 using System;
 using System.Collections.Generic;

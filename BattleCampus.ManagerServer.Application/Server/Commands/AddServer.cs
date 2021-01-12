@@ -1,6 +1,6 @@
 ﻿using Application.Errors;
 using BattleCampus.Core;
-using BattleCampus.ManageServer.Persistence;
+using BattleCampus.Persistence;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System;
