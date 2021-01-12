@@ -1,7 +1,10 @@
 ﻿using BattleCampus.Core;
+using BattleCampus.MatchServer.Application.Matches.Commands;
+using BattleCampus.MatchServer.Application.Matches.Query;
 using BattleCampusMatchServer.Models;
 using BattleCampusMatchServer.Models.DTOs;
 using BattleCampusMatchServer.Services;
+using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -17,90 +20,65 @@ namespace BattleCampusMatchServer.Controllers
     public class MatchesController : ControllerBase
     {
         private readonly IMatchManager _matchManager;
+        private readonly IMediator _mediator;
 
         //TODO : log all actions
-        public MatchesController(IMatchManager matchManager)
+        //TODO : 그냥 매치도 다 저장하고 여기서 매치매니저에 접속은 안하는게 나을듯? 매치매니저를 없앨까? 그러면 서버관리를 어케하지
+        public MatchesController(IMatchManager matchManager, IMediator mediator)
         {
             _matchManager = matchManager;
+            _mediator = mediator;
         }
 
         [HttpGet]
-        public ActionResult<List<Match>> GetAllMatches()
+        public async Task<ActionResult<List<Match>>> GetAllMatchesAsync()
         {
             //HACK: don't convert to MatchDTO to reduce server load.
-            var matches = _matchManager.GetMatches();
-            return matches;
+            return Ok(await _mediator.Send(new GetAll.Query()));
         }
 
         [HttpPost("create")]
-        public ActionResult<MatchCreationResultDTO> CreateMatch([FromQuery] string name, [FromBody] GameUser user)
+        public async Task<ActionResult<MatchCreationResultDTO>> CreateMatchAsync([FromQuery] string name, [FromBody] GameUser user)
         {
-
-
-            var matchCreationResult = _matchManager.CreateNewMatch(name, user);
-
-            if (matchCreationResult.IsCreationSuccess == false)
+            var result = await _mediator.Send(new CreateMatch.Command()
             {
-                return Ok(new MatchCreationResultDTO
-                {
-                    IsCreationSuccess = false,
-                    CreationFailReason = matchCreationResult.CreationFailReason,
-                });
-            }
-
-            var matchDTO = MatchDTO.CreateFromMatch(matchCreationResult.Match);
-
-            var result = new MatchCreationResultDTO
-            {
-                IsCreationSuccess = true,
-                Match = matchDTO,
-            };
+                Name = name,
+                User = user,
+            });
 
             return Ok(result);
         }
 
         [HttpPost("join")]
-        public ActionResult<MatchJoinResult> JoinMatch([FromQuery] string serverIp, [FromQuery] string matchID, [FromBody] GameUser user )
+        public async Task<ActionResult<MatchJoinResult>> JoinMatchAsync([FromQuery] string matchID, JoinMatch.Command command)
         {
-            var joinResult = _matchManager.JoinMatch(serverIp, matchID, user);
-
-            MatchDTO match = null;
-
-            if (joinResult.JoinSucceeded)
-            {
-                match = MatchDTO.CreateFromMatch(joinResult.Match);
-            }
-
-            var matchJoinResult = new MatchJoinResultDTO
-            {
-                JoinFailReason = joinResult.JoinFailReason,
-                JoinSucceeded = joinResult.JoinSucceeded,
-                Match = match,
-            };
-
+            command.MatchID = matchID;
+            var matchJoinResult = await _mediator.Send(command);
             return Ok(matchJoinResult);
         }
 
-        [HttpPost("notify/exit")]
-        public ActionResult NotifyPlayerExitMatch([FromQuery] string serverIp, [FromQuery] string matchID, [FromBody] GameUser user)
-        {
-            _matchManager.NotifyPlayerExitGame(serverIp, matchID, user);
+        //[HttpPost("notify/exit")]
+        //public ActionResult NotifyPlayerExitMatch([FromQuery] string matchID, [FromQuery] string serverIp, [FromBody] GameUser user)
+        //{
+        //    _matchManager.NotifyPlayerExitGame(serverIp, matchID, user);
 
-            return Ok();
-        }
+        //    return Ok();
+        //}
 
         [HttpPost("notify/connect")]
-        public ActionResult NotifyUserConnect([FromQuery] string serverIp, [FromQuery] int connectionID, [FromBody] GameUser user)
+        public async Task<ActionResult> NotifyUserConnectAsync([FromQuery] int connectionID, [FromBody] NotifyGameUserConnect.Command command)
         {
-            user.ConnectionID = connectionID;
+            command.User.ConnectionID = connectionID;
 
-            _matchManager.ConnectUser(serverIp, user);
+            await _mediator.Send(command);
 
             return Ok();
         }
 
+        [Route("notify/exit")]
+        [Route("notify/disconnet")]
         [HttpPost("notify/disconnect")]
-        public ActionResult NotifyUserDisconnect([FromQuery] string serverIp, [FromQuery] int connectionID)
+        public ActionResult NotifyUserDisconnect([FromQuery] int connectionID, [FromBody] IpPortInfo serverIp)
         {
             _matchManager.DisconnectUser(serverIp, connectionID);
 

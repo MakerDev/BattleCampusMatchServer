@@ -1,5 +1,6 @@
 ﻿using BattleCampus.Core;
 using BattleCampusMatchServer.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -23,21 +24,39 @@ namespace BattleCampusMatchServer.Controllers
             _loggerFactory = loggerFactory;
         }
 
-        [HttpPost("register/{name}")]
-        public ActionResult RegisterServer(string name, [FromQuery] int maxMatches, [FromBody] IpPortInfo ipPortInfo)
+        [Authorize]
+        [HttpGet("all")]
+        public ActionResult<List<GameServerModel>> GetServers()
         {
-            var server = new GameServer(name, ipPortInfo, _loggerFactory);
-            server.MaxMatches = maxMatches;
+            throw new NotImplementedException();
+        }
 
-            _matchManager.RegisterGameServer(server);
+        [Authorize]
+        [HttpGet]
+        public ActionResult<GameServerModel> GetServer(IpPortInfo ipPortInfo)
+        {
+            throw new NotImplementedException();
+        }
+
+        [Authorize]
+        [HttpPost("add")]
+        public ActionResult AddServer(GameServerModel gameServer)
+        {
+            throw new NotImplementedException();
+        }
+
+        [HttpPost("register/{name}")]
+        public async Task<ActionResult> RegisterServerAsync(string name, [FromQuery] int maxMatches, [FromBody] IpPortInfo ipPortInfo)
+        {
+            await _matchManager.RegisterGameServerAsync(name, maxMatches, ipPortInfo);
 
             return Ok();
         }
 
         [HttpDelete("unregister/{ipAddress}")]
-        public void UnRegisterServer(string ipAddress)
+        public async Task UnRegisterServer(IpPortInfo ipAddress)
         {
-            _matchManager.UnRegisterGameServer(ipAddress);
+            await _matchManager.UnRegisterGameServerAsync(ipAddress);
         }
     }
 }
