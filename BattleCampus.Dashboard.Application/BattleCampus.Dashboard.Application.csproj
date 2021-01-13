@@ -6,12 +6,17 @@
 
   <ItemGroup>
     <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\BattleCampus.Core\BattleCampus.Core.csproj" />
     <ProjectReference Include="..\BattleCampus.ReportServer.Persistence\BattleCampus.Persistence.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="User\Commands\" />
   </ItemGroup>
 
 </Project>

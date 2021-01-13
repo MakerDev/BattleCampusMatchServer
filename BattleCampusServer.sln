@@ -21,7 +21,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BattleCampus.MatchServer.Ap
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BattleCampus.Dashboard", "BattleCampus.Dashboard\BattleCampus.Dashboard.csproj", "{D5FAF3E0-6523-4C8F-9A30-E1C96D89ECEA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleCampus.Dashboard.Application", "BattleCampus.Dashboard.Application\BattleCampus.Dashboard.Application.csproj", "{F8F30F79-A836-4540-9490-4C0D193C05A2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BattleCampus.Dashboard.Application", "BattleCampus.Dashboard.Application\BattleCampus.Dashboard.Application.csproj", "{F8F30F79-A836-4540-9490-4C0D193C05A2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
