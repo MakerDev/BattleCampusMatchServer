@@ -1,6 +1,6 @@
 using System;
 
-namespace BattleCampus.Dashboard.Data
+namespace BattleCampus.Dashboard.API
 {
     public class WeatherForecast
     {
