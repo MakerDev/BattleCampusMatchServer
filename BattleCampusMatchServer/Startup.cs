@@ -56,13 +56,15 @@ namespace BattleCampusMatchServer
 
             if (env.IsDevelopment())
             {
-                app.UseDeveloperExceptionPage();
+                //app.UseDeveloperExceptionPage();
             }
+
             app.UseHttpsRedirection();
 
             app.UseRouting();
             app.UseCors("allow-all");
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
