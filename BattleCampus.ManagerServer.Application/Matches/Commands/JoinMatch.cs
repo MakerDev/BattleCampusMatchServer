@@ -17,7 +17,7 @@ namespace BattleCampus.MatchServer.Application.Matches.Commands
         public class Command : IRequest<MatchJoinResultDTO>
         {
             public string MatchID { get; set; }
-            public IpPortInfo Server { get; set; }
+            public IpPortInfo IpPortInfo { get; set; }
             public GameUser User { get; set; }
         }
 
@@ -32,7 +32,7 @@ namespace BattleCampus.MatchServer.Application.Matches.Commands
 
             public Task<MatchJoinResultDTO> Handle(Command request, CancellationToken cancellationToken)
             {
-                var joinResult = _matchManager.JoinMatch(request.Server, request.MatchID, request.User);
+                var joinResult = _matchManager.JoinMatch(request.IpPortInfo, request.MatchID, request.User);
 
                 MatchDTO match = null;
 

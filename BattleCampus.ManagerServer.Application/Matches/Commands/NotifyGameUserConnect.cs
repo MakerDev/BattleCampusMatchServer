@@ -14,7 +14,7 @@ namespace BattleCampus.MatchServer.Application.Matches.Commands
     {
         public class Command : IRequest
         {
-            public IpPortInfo ServerIp { get; set; }
+            public IpPortInfo IpPortInfo { get; set; }
             public GameUser User { get; set; }
         }
 
@@ -29,7 +29,7 @@ namespace BattleCampus.MatchServer.Application.Matches.Commands
 
             public Task<Unit> Handle(Command request, CancellationToken cancellationToken)
             {
-                _matchManager.ConnectUser(request.ServerIp, request.User);
+                _matchManager.ConnectUser(request.IpPortInfo, request.User);
 
                 return Task.FromResult(Unit.Value);
             }
