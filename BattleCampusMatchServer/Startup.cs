@@ -1,6 +1,8 @@
 using BattleCampus.Core.Middleware;
+using BattleCampus.MatchServer.Application.Matches.Commands;
 using BattleCampus.Persistence;
 using BattleCampusMatchServer.Services;
+using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -35,6 +37,7 @@ namespace BattleCampusMatchServer
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
             services.AddControllers();
+            services.AddMediatR(typeof(CreateMatch.Command));
             services.AddScoped<IMatchManager, MatchManager>();
             services.AddCors((options) =>
             {
