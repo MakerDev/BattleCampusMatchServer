@@ -25,7 +25,9 @@ namespace BattleCampus.Persistence
             builder.Entity<GameServerModel>()
                 .OwnsOne(x => x.IpPortInfo);
 
-            builder.Entity<GameServerModel>().Property(x => x.State).HasConversion<string>();
+            builder.Entity<GameServerModel>()
+                .Property(x => x.State)
+                .HasConversion<string>();
         }
     }
 }
