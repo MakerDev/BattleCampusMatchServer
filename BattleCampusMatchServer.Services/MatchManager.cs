@@ -1,6 +1,7 @@
 ﻿using BattleCampus.Core;
 using BattleCampus.Persistence;
 using BattleCampusMatchServer.Models;
+using BattleCampusMatchServer.Services.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -66,6 +67,7 @@ namespace BattleCampusMatchServer.Services
             if (validServer == false)
             {
                 _logger.LogError($"Tried to connect {user} to {serverIpInfo} which does not exist");
+                return;
             }
 
             server.ConnectUser(user);
@@ -142,7 +144,7 @@ namespace BattleCampusMatchServer.Services
             return matches;
         }
 
-        public async  Task RegisterGameServerAsync(string name, int maxMatches, IpPortInfo ipPortInfo)
+        public async Task RegisterGameServerAsync(string name, int maxMatches, IpPortInfo ipPortInfo)
         {
             var server = new GameServer(name, ipPortInfo, _loggerFactory);
             server.MaxMatches = maxMatches;
@@ -154,7 +156,7 @@ namespace BattleCampusMatchServer.Services
                 return;
             }
 
-            var alreadyHasServer = (await _dbContext.Servers.FirstOrDefaultAsync(x => x.IpPortInfo == ipPortInfo)) == null;
+            var alreadyHasServer = (await _dbContext.Servers.TryFindGameServerModel(ipPortInfo)) != null;
 
             if (alreadyHasServer)
             {
@@ -164,24 +166,47 @@ namespace BattleCampusMatchServer.Services
             }
 
             Servers.Add(ipPortInfo, server);
+            _dbContext.Servers.Add(new GameServerModel
+            {
+                IpPortInfo = ipPortInfo,
+                MaxMatches = maxMatches,
+                Name = name,
+                State = ServerState.Running,
+            });
+            await _dbContext.SaveChangesAsync();
             _logger.LogInformation($"Registerd server {server}");
         }
 
-        public async Task UnRegisterGameServerAsync(IpPortInfo serverIp)
+        public async Task TurnOffServerAsync(IpPortInfo ipPortInfo)
         {
-            var server = await _dbContext.Servers.FirstOrDefaultAsync(x => x.IpPortInfo == serverIp);
+            var serverModel = await _dbContext.Servers.TryFindGameServerModel(ipPortInfo);
 
-            if (server == null)
+            if (serverModel == null)
             {
-                _logger.LogError($"{serverIp} doesn't exist in the database");
+                return;
+            }
+
+            Servers.Remove(ipPortInfo);
+            serverModel.State = ServerState.Off;
+            await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task UnRegisterGameServerAsync(IpPortInfo ipPortInfo)
+        {
+            var serverModel = await _dbContext.Servers.TryFindGameServerModel(ipPortInfo);
+
+            if (serverModel == null)
+            {
+                _logger.LogError($"{ipPortInfo} doesn't exist in the database");
             }
             else
             {
-                _dbContext.Servers.Remove(server);
+                _dbContext.Servers.Remove(serverModel);
+                await _dbContext.SaveChangesAsync();
             }
 
-            Servers.Remove(serverIp);
-            _logger.LogInformation($"Removed server => {serverIp}");
+            Servers.Remove(ipPortInfo);
+            _logger.LogInformation($"Removed server => {ipPortInfo}");
         }
     }
 }

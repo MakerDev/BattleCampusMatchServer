@@ -13,6 +13,7 @@ namespace BattleCampusMatchServer.Services
         List<Match> GetMatches();
         MatchJoinResult JoinMatch(IpPortInfo serverIp, string matchID, GameUser user);
         Task RegisterGameServerAsync(string name, int maxMatches, IpPortInfo ipPortInfo);
+        Task TurnOffServerAsync(IpPortInfo ipPortInfo);
         Task UnRegisterGameServerAsync(IpPortInfo serverIp);
     }
 }

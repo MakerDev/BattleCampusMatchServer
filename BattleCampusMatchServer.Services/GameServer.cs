@@ -39,6 +39,12 @@ namespace BattleCampusMatchServer.Services
             _logger.LogInformation($"{this} has been launched!");
         }
 
+        public void ResetServer()
+        {
+            UserConnections.Clear();
+            Matches.Clear();
+        }
+
         public void DisconnectUser(int connectionID)
         {
             var hasUser = UserConnections.TryGetValue(connectionID, out var user);
