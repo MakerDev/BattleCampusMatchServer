@@ -8,9 +8,9 @@ namespace BattleCampus.Core
     {
         public GuestUser()
         {
+            ID = Guid.NewGuid();
             Name = "Guest";
             StudentID = "2020485485";
-            ID = Guid.NewGuid();
         }
     }
 }

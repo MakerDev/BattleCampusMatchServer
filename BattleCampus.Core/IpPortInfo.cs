@@ -13,6 +13,11 @@
 
         public override bool Equals(object obj)
         {
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
             if (obj is not IpPortInfo ipPortInfo)
             {
                 return false;
@@ -25,7 +30,7 @@
         
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return ToString().GetHashCode();
         }
     }
 }

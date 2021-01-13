@@ -6,9 +6,9 @@ namespace BattleCampus.Core
 {
     public class GameUser
     {
-        /// <summary>
-        /// Guid for persisted user
-        /// </summary>
+        //TODO : This is currently client generated. Change this to be server-generated value.
+        //As a GameUser can be a guest user, this ID doesn't have to be stored to database. 
+        //It's generated on demand (ex:match joining, match creation) and disposed after a match is done.
         public Guid ID { get; set; }
         public int ConnectionID { get; set; } = -1;
         public string StudentID { get; set; }
@@ -18,6 +18,21 @@ namespace BattleCampus.Core
         /// currently joining match id
         /// </summary>
         public string MatchID { get; set; } = null;
+
+        public override bool Equals(object obj)
+        {
+            if (obj is not GameUser user)
+            {
+                return false;
+            }
+
+            return user.ID == ID;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
 
         public override string ToString()
         {
