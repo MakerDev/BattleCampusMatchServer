@@ -53,8 +53,15 @@ namespace BattleCampusMatchServer.Controllers
             return Ok();
         }
 
-        [HttpDelete("unregister/{ipAddress}")]
-        public async Task UnRegisterServer(IpPortInfo ipAddress)
+        [HttpDelete("turnoff")]
+        public async Task TurnOffServerAsync(IpPortInfo ipAddress)
+        {
+            await _matchManager.TurnOffServerAsync(ipAddress);
+        }
+
+        [Authorize]
+        [HttpDelete("unregister")]
+        public async Task UnregisterServerAsync(IpPortInfo ipAddress)
         {
             await _matchManager.UnRegisterGameServerAsync(ipAddress);
         }
