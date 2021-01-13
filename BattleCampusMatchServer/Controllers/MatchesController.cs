@@ -50,7 +50,7 @@ namespace BattleCampusMatchServer.Controllers
         }
 
         [HttpPost("join")]
-        public async Task<ActionResult<MatchJoinResult>> JoinMatchAsync([FromQuery] string matchID, JoinMatch.Command command)
+        public async Task<ActionResult<MatchJoinResult>> JoinMatchAsync([FromQuery] string matchID,[FromBody]JoinMatch.Command command)
         {
             command.MatchID = matchID;
             var matchJoinResult = await _mediator.Send(command);
