@@ -1,4 +1,5 @@
 using BattleCampus.Core.Middleware;
+using BattleCampus.Core.Utils;
 using BattleCampus.Dashboard.Application.User.Query;
 using BattleCampus.Persistence;
 using MediatR;
@@ -36,6 +37,7 @@ namespace BattleCampus.Dashboard.API
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
             services.AddIdentity<IdentityUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
+            services.AddTransient<IJwtGenerator, JwtGenerator>();
 
             services.AddMediatR(typeof(Login.Query));
             services.AddCors((options) =>
@@ -62,7 +64,7 @@ namespace BattleCampus.Dashboard.API
 
             if (env.IsDevelopment())
             {
-                app.UseDeveloperExceptionPage();
+                //app.UseDeveloperExceptionPage();
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "BattleCampus.Dashboard.API v1"));
             }

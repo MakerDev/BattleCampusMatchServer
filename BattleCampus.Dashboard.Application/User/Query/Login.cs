@@ -36,6 +36,11 @@ namespace BattleCampus.Dashboard.Application.User.Query
 
             public async Task<AdminUser> Handle(Query request, CancellationToken cancellationToken)
             {
+                if (string.IsNullOrEmpty(request.Id) || string.IsNullOrEmpty(request.Password))
+                {
+                    throw new RestException(HttpStatusCode.BadRequest, "Id and password cannot be empty");
+                }
+
                 var user = await _userManager.FindByIdAsync(request.Id);
 
                 if (user == null)
