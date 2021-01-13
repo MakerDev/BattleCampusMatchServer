@@ -161,7 +161,8 @@ namespace BattleCampusMatchServer.Services
             if (alreadyHasServer)
             {
                 _logger.LogError($"Already has {server} in the database");
-
+                var existingServer = Servers[ipPortInfo];
+                existingServer.ResetServer();
                 return;
             }
 
