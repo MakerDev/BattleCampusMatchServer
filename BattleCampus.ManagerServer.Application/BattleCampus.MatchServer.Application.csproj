@@ -13,4 +13,8 @@
     <ProjectReference Include="..\BattleCampusMatchServer.Services\BattleCampusMatchServer.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="User\Commands\" />
+  </ItemGroup>
+
 </Project>
