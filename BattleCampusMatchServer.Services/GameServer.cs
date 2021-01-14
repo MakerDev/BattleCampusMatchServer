@@ -25,7 +25,7 @@ namespace BattleCampusMatchServer.Services
         /// Key : connectionId of the user
         /// Value : connected User
         /// </summary>
-        public ConcurrentDictionary<GameUser, int> UserConnections { get; private set; } = new ConcurrentDictionary<GameUser, int>();
+        public ConcurrentDictionary<GameUser, int> UserConnections { get; private set; } 
 
         public GameServer(string name, IpPortInfo ipPortInfo, ILoggerFactory loggerFactory, int maxMatches = 5)
         {
@@ -34,9 +34,10 @@ namespace BattleCampusMatchServer.Services
             MaxMatches = maxMatches;
 
             Matches = new ConcurrentDictionary<string, Match>(Environment.ProcessorCount * 2, 128);
+            UserConnections = new ConcurrentDictionary<GameUser, int>(Environment.ProcessorCount * 2, 256);
 
             _logger = loggerFactory.CreateLogger<GameServer>();
-            _logger.LogInformation($"{this} has been launched!");
+            _logger.LogInformation($"GameServer : {this} has been launched!");
         }
 
         public void ResetServer()

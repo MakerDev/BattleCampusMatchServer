@@ -5,6 +5,7 @@ using BattleCampusMatchServer.Services.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -20,10 +21,8 @@ namespace BattleCampusMatchServer.Services
         /// <summary>
         /// Key : Server Ip
         /// </summary>
-        public static Dictionary<IpPortInfo, GameServer> Servers { get; private set; } = null;
+        public static ConcurrentDictionary<IpPortInfo, GameServer> Servers { get; private set; } = null;
         private static int _lastUsedServerIndex = 0;
-
-        private object _serverLock = new object();
 
         private readonly ILogger<MatchManager> _logger;
         private readonly ApplicationDbContext _dbContext;
@@ -42,19 +41,16 @@ namespace BattleCampusMatchServer.Services
                 .Include(x => x.IpPortInfo)
                 .ToList();
 
-                lock (_serverLock)
+                Servers = new ConcurrentDictionary<IpPortInfo, GameServer>(Environment.ProcessorCount * 2, 16);
+
+                foreach (var serverModel in servers)
                 {
-                    Servers = new Dictionary<IpPortInfo, GameServer>();
+                    var server = new GameServer(serverModel.Name, serverModel.IpPortInfo, _loggerFactory, serverModel.MaxMatches);
 
-                    foreach (var serverModel in servers)
+                    var result = Servers.TryAdd(server.IpPortInfo, server);
+                    if (result == false)
                     {
-                        var server = new GameServer(serverModel.Name, serverModel.IpPortInfo, _loggerFactory, serverModel.MaxMatches);
-
-                        var result = Servers.TryAdd(server.IpPortInfo, server);
-                        if (result == false)
-                        {
-                            _logger.LogError($"Tried to initialize with duplicate server {server}");
-                        }
+                        _logger.LogError($"Tried to initialize with duplicate server {server}");
                     }
                 }
             }
@@ -177,9 +173,13 @@ namespace BattleCampusMatchServer.Services
             var server = new GameServer(name, ipPortInfo, _loggerFactory);
             server.MaxMatches = maxMatches;
 
-            lock (_serverLock)
+            var result = Servers.TryAdd(ipPortInfo, server);
+
+            if (result == false)
             {
-                Servers.Add(ipPortInfo, server);
+                _logger.LogError($"Failed to add {server} as it already exists");
+
+                return;
             }
 
             _dbContext.Servers.Add(new GameServerModel
@@ -202,10 +202,14 @@ namespace BattleCampusMatchServer.Services
                 return;
             }
 
-            lock (_serverLock)
+
+            var result = Servers.TryRemove(ipPortInfo, out var _);
+
+            if (result == false)
             {
-                Servers.Remove(ipPortInfo);
+                _logger.LogError($"Error occured while turning off server {ipPortInfo}");
             }
+
             serverModel.State = ServerState.Off;
             await _dbContext.SaveChangesAsync();
         }
@@ -224,9 +228,12 @@ namespace BattleCampusMatchServer.Services
                 await _dbContext.SaveChangesAsync();
             }
 
-            lock (_serverLock)
+            var result = Servers.TryRemove(ipPortInfo, out var _);
+
+            if (result == false)
             {
-                Servers.Remove(ipPortInfo);
+                _logger.LogError($"Error occured while turning off server {ipPortInfo}");
+                return;
             }
 
             _logger.LogInformation($"Removed server => {ipPortInfo}");
