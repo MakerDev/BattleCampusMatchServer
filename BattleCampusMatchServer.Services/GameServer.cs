@@ -45,30 +45,6 @@ namespace BattleCampusMatchServer.Services
             Matches.Clear();
         }
 
-        public void DisconnectUser(int connectionID)
-        {
-            var hasUser = UserConnections.TryGetValue(connectionID, out var user);
-
-            if (hasUser == false)
-            {
-                _logger.LogWarning($"Disconnecting with connectionID:{connectionID} failed");
-
-                return;
-            }
-
-            if (user.MatchID != null)
-            {
-                RemovePlayerFromMatch(user.MatchID, user);
-                _logger.LogInformation($"Disconnected {user} with connectionID: {connectionID} who was joining {user.MatchID}");
-                user.MatchID = null;
-            }
-
-            lock (_userConnectionLock)
-            {
-                UserConnections.Remove(connectionID);
-            }
-        }
-
         public void ConnectUser(GameUser user)
         {
             var validMatch = Matches.TryGetValue(user.MatchID, out var match);
@@ -93,6 +69,30 @@ namespace BattleCampusMatchServer.Services
             }
         }
 
+        public void DisconnectUser(int connectionID)
+        {
+            var hasUser = UserConnections.TryGetValue(connectionID, out var user);
+
+            if (hasUser == false)
+            {
+                _logger.LogWarning($"Disconnecting with connectionID:{connectionID} failed");
+
+                return;
+            }
+
+            if (user.MatchID != null)
+            {
+                RemovePlayerFromMatch(user.MatchID, user);
+                _logger.LogInformation($"Disconnected {user} with connectionID: {connectionID} who was joining {user.MatchID}");
+                user.MatchID = null;
+            }
+
+            lock (_userConnectionLock)
+            {
+                UserConnections.Remove(connectionID);
+            }
+        }
+
         private void RemovePlayerFromMatch(string matchID, GameUser user)
         {
             var hasMatch = Matches.TryGetValue(matchID, out var match);
@@ -103,11 +103,12 @@ namespace BattleCampusMatchServer.Services
                 return;
             }
 
-            bool removeResult;  
+            bool removeResult;
 
             lock (_matchLock)
             {
-                removeResult = match.Players.Remove(user);
+                var player = match.Players.Find((x) => x.ID == user.ID);
+                removeResult = match.Players.Remove(player);
             }
 
             if (removeResult == false)
@@ -208,9 +209,8 @@ namespace BattleCampusMatchServer.Services
             lock (_matchLock)
             {
                 match.Players.Add(host);
+                Matches.Add(match.MatchID, match);
             }
-
-            Matches.Add(match.MatchID, match);
 
             _logger.LogInformation($"Successfully created match {name} on server {this}");
 

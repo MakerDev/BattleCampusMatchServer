@@ -50,10 +50,19 @@ namespace BattleCampusMatchServer.Services
                     {
                         var server = new GameServer(serverModel.Name, serverModel.IpPortInfo, _loggerFactory, serverModel.MaxMatches);
 
-                        Servers.Add(server.IpPortInfo, server);
+                        var result = Servers.TryAdd(server.IpPortInfo, server);
+                        if (result == false)
+                        {
+                            _logger.LogError($"Tried to initialize with duplicate server {server}");
+                        }
                     }
                 }
             }
+        }
+
+        public IEnumerable<GameServer> GetServers()
+        {
+            return Servers.Values;
         }
 
         /// <summary>
@@ -146,27 +155,33 @@ namespace BattleCampusMatchServer.Services
 
         public async Task RegisterGameServerAsync(string name, int maxMatches, IpPortInfo ipPortInfo)
         {
-            var server = new GameServer(name, ipPortInfo, _loggerFactory);
-            server.MaxMatches = maxMatches;
-
             if (Servers.ContainsKey(ipPortInfo))
             {
-                _logger.LogError($"Trying to register duplicate server => {server}");
+                _logger.LogError($"Trying to register duplicate server => {ipPortInfo}");
 
                 return;
             }
 
-            var alreadyHasServer = (await _dbContext.Servers.TryFindGameServerModel(ipPortInfo)) != null;
+            var serverModel = await _dbContext.Servers.TryFindGameServerModel(ipPortInfo);
 
-            if (alreadyHasServer)
+            if (serverModel != null)
             {
-                _logger.LogError($"Already has {server} in the database");
+                //Turn on server
+                _logger.LogWarning($"Already has {serverModel.IpPortInfo} in the database. Turning on the server.");
                 var existingServer = Servers[ipPortInfo];
                 existingServer.ResetServer();
                 return;
             }
 
-            Servers.Add(ipPortInfo, server);
+            //Register new servver
+            var server = new GameServer(name, ipPortInfo, _loggerFactory);
+            server.MaxMatches = maxMatches;
+
+            lock (_serverLock)
+            {
+                Servers.Add(ipPortInfo, server);
+            }
+
             _dbContext.Servers.Add(new GameServerModel
             {
                 IpPortInfo = ipPortInfo,
@@ -187,7 +202,10 @@ namespace BattleCampusMatchServer.Services
                 return;
             }
 
-            Servers.Remove(ipPortInfo);
+            lock (_serverLock)
+            {
+                Servers.Remove(ipPortInfo);
+            }
             serverModel.State = ServerState.Off;
             await _dbContext.SaveChangesAsync();
         }
@@ -206,7 +224,11 @@ namespace BattleCampusMatchServer.Services
                 await _dbContext.SaveChangesAsync();
             }
 
-            Servers.Remove(ipPortInfo);
+            lock (_serverLock)
+            {
+                Servers.Remove(ipPortInfo);
+            }
+
             _logger.LogInformation($"Removed server => {ipPortInfo}");
         }
     }
