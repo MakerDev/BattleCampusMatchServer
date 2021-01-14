@@ -2,6 +2,7 @@
 using BattleCampusMatchServer.Services.Models;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,21 +20,20 @@ namespace BattleCampusMatchServer.Services
         /// Key : Match ID
         /// Value : Match instance
         /// </summary>
-        public Dictionary<string, Match> Matches { get; private set; } = new Dictionary<string, Match>();
-        private readonly object _matchLock = new object();
+        public ConcurrentDictionary<string, Match> Matches { get; private set; }
         /// <summary>
         /// Key : connectionId of the user
         /// Value : connected User
         /// </summary>
-        public Dictionary<int, GameUser> UserConnections { get; private set; } = new Dictionary<int, GameUser>();
-        private readonly object _userConnectionLock = new object();
-
+        public ConcurrentDictionary<GameUser, int> UserConnections { get; private set; } = new ConcurrentDictionary<GameUser, int>();
 
         public GameServer(string name, IpPortInfo ipPortInfo, ILoggerFactory loggerFactory, int maxMatches = 5)
         {
             Name = name;
             IpPortInfo = ipPortInfo;
             MaxMatches = maxMatches;
+
+            Matches = new ConcurrentDictionary<string, Match>(Environment.ProcessorCount * 2, 128);
 
             _logger = loggerFactory.CreateLogger<GameServer>();
             _logger.LogInformation($"{this} has been launched!");
@@ -56,12 +56,15 @@ namespace BattleCampusMatchServer.Services
 
             _logger.LogInformation($"{user} is connected with connectionID : {user.ConnectionID} who is joining {match}");
 
-            if (UserConnections.ContainsKey(user.ConnectionID) == false)
+            if (UserConnections.ContainsKey(user) == false)
             {
-                lock (_userConnectionLock)
+                UserConnections.AddOrUpdate(user, user.ConnectionID, (existingUser, existingConnectionId) =>
                 {
-                    UserConnections.Add(user.ConnectionID, user);
-                }
+                    //Update connectionId
+                    existingUser.ConnectionID = user.ConnectionID;
+
+                    return user.ConnectionID;
+                });
             }
             else
             {
@@ -71,11 +74,11 @@ namespace BattleCampusMatchServer.Services
 
         public void DisconnectUser(int connectionID)
         {
-            var hasUser = UserConnections.TryGetValue(connectionID, out var user);
+            var user = UserConnections.Keys.FirstOrDefault(x => x.ConnectionID == connectionID);
 
-            if (hasUser == false)
+            if (user == null)
             {
-                _logger.LogWarning($"Disconnecting with connectionID:{connectionID} failed");
+                _logger.LogWarning($"Disconnecting with connectionID:{connectionID} failed. No such connection exists");
 
                 return;
             }
@@ -87,10 +90,7 @@ namespace BattleCampusMatchServer.Services
                 user.MatchID = null;
             }
 
-            lock (_userConnectionLock)
-            {
-                UserConnections.Remove(connectionID);
-            }
+            UserConnections.TryRemove(user, out var _);
         }
 
         private void RemovePlayerFromMatch(string matchID, GameUser user)
@@ -105,11 +105,8 @@ namespace BattleCampusMatchServer.Services
 
             bool removeResult;
 
-            lock (_matchLock)
-            {
-                var player = match.Players.Find((x) => x.ID == user.ID);
-                removeResult = match.Players.Remove(player);
-            }
+            var player = match.Players.Find((x) => x.ID == user.ID);
+            removeResult = match.Players.Remove(player);
 
             if (removeResult == false)
             {
@@ -156,10 +153,7 @@ namespace BattleCampusMatchServer.Services
 
             if (match.Players.Contains(user) == false)
             {
-                lock (_matchLock)
-                {
-                    match.Players.Add(user);
-                }
+                match.Players.Add(user);
 
                 _logger.LogInformation($"{user} joined to {match}");
             }
@@ -206,10 +200,17 @@ namespace BattleCampusMatchServer.Services
 
             host.MatchID = match.MatchID;
 
-            lock (_matchLock)
+            match.Players.Add(host);
+            var result = Matches.TryAdd(match.MatchID, match);
+
+            if (result == false)
             {
-                match.Players.Add(host);
-                Matches.Add(match.MatchID, match);
+                _logger.LogError($"Failed to create {match.MatchID}");
+                return new MatchCreationResult
+                {
+                    IsCreationSuccess = false,
+                    CreationFailReason = $"{match.MatchID} is already taken",
+                };
             }
 
             _logger.LogInformation($"Successfully created match {name} on server {this}");
@@ -233,10 +234,7 @@ namespace BattleCampusMatchServer.Services
 
             _logger.LogInformation($"Delete match : {matchID} from server {this}");
 
-            lock (_matchLock)
-            {
-                Matches.Remove(matchID);
-            }
+            Matches.Remove(matchID, out var _);
         }
 
         public override string ToString()
