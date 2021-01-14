@@ -16,19 +16,29 @@ namespace BattleCampusMatchServer.Controllers
     public class ServerController : ControllerBase
     {
         private readonly IMatchManager _matchManager;
-        private readonly ILoggerFactory _loggerFactory;
 
-        public ServerController(IMatchManager matchManager, ILoggerFactory loggerFactory)
+        public ServerController(IMatchManager matchManager)
         {
             _matchManager = matchManager;
-            _loggerFactory = loggerFactory;
         }
 
         [Authorize]
         [HttpGet("all")]
         public ActionResult<List<GameServerModel>> GetServers()
         {
-            throw new NotImplementedException();
+            var servers = _matchManager.GetServers();
+            var serverModels = new List<GameServerModel>();
+            foreach (var server in servers)
+            {
+                serverModels.Add(new GameServerModel
+                {
+                    IpPortInfo = server.IpPortInfo,
+                    MaxMatches = server.MaxMatches,
+                    Name = server.Name,
+                });
+            }
+
+            return Ok(serverModels);
         }
 
         [Authorize]
@@ -41,6 +51,13 @@ namespace BattleCampusMatchServer.Controllers
         [Authorize]
         [HttpPost("add")]
         public ActionResult AddServer(GameServerModel gameServer)
+        {
+            throw new NotImplementedException();
+        }
+
+        [Authorize]
+        [HttpPut("rename")]
+        public ActionResult RenameServer(string name, IpPortInfo ipPortInfo)
         {
             throw new NotImplementedException();
         }
