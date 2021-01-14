@@ -1,5 +1,7 @@
 ﻿using BattleCampus.Core;
+using BattleCampus.MatchServer.Application.Server.Query;
 using BattleCampusMatchServer.Services;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,10 +18,12 @@ namespace BattleCampusMatchServer.Controllers
     public class ServerController : ControllerBase
     {
         private readonly IMatchManager _matchManager;
+        private readonly IMediator _mediator;
 
-        public ServerController(IMatchManager matchManager)
+        public ServerController(IMatchManager matchManager, IMediator mediator)
         {
             _matchManager = matchManager;
+            _mediator = mediator;
         }
 
         [Authorize]
@@ -40,6 +44,14 @@ namespace BattleCampusMatchServer.Controllers
 
             return Ok(serverModels);
         }
+
+        [Authorize]
+        [HttpGet("all/db")]
+        public async Task<ActionResult<List<GameServerModel>>> GetServersFromDbAsync()
+        {
+            return Ok(await _mediator.Send(new GetAllFromDb.Query()));
+        }
+
 
         [Authorize]
         [HttpGet]

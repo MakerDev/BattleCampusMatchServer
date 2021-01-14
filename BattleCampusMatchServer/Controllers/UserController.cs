@@ -1,5 +1,7 @@
 ﻿using BattleCampus.MatchServer.Application.User;
+using BattleCampus.MatchServer.Application.User.Query;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -20,6 +22,7 @@ namespace BattleCampusMatchServer.Controllers
             _mediator = mediator;
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult<AdminUser>> LoginAsAdminAsync([FromBody] Login.Query query)
         {

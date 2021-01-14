@@ -75,8 +75,6 @@ namespace BattleCampusMatchServer.Controllers
             return Ok();
         }
 
-        [Route("notify/exit")]
-        [Route("notify/disconnet")]
         [HttpPost("notify/disconnect")]
         public ActionResult NotifyUserDisconnect([FromQuery] int connectionID, [FromBody] IpPortInfo serverIp)
         {
