@@ -1,5 +1,5 @@
 ﻿using BattleCampus.Core;
-using BattleCampusMatchServer.Models;
+using BattleCampusMatchServer.Services.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 

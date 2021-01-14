@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BattleCampusMatchServer.Models.DTOs
+namespace BattleCampusMatchServer.Services.Models.DTOs
 {
     public class MatchDTO
     {

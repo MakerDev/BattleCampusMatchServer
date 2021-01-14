@@ -1,6 +1,5 @@
 ﻿using BattleCampus.Core;
 using BattleCampus.Persistence;
-using BattleCampusMatchServer.Models.DTOs;
 using BattleCampusMatchServer.Services;
 using MediatR;
 using System;

@@ -1,9 +1,9 @@
 ﻿using BattleCampus.Core;
 using BattleCampus.MatchServer.Application.Matches.Commands;
 using BattleCampus.MatchServer.Application.Matches.Query;
-using BattleCampusMatchServer.Models;
-using BattleCampusMatchServer.Models.DTOs;
 using BattleCampusMatchServer.Services;
+using BattleCampusMatchServer.Services.Models;
+using BattleCampusMatchServer.Services.Models.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

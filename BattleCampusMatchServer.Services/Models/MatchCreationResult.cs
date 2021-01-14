@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BattleCampusMatchServer.Models
+namespace BattleCampusMatchServer.Services.Models
 {
     public class MatchCreationResult
     {

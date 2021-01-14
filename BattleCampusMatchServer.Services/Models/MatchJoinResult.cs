@@ -1,12 +1,13 @@
-﻿using System;
+﻿using BattleCampus.Core;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BattleCampusMatchServer.Models.DTOs
+namespace BattleCampusMatchServer.Services.Models
 {
-    public class MatchJoinResultDTO
+    public class MatchJoinResult
     {
-        public MatchDTO Match { get; set; } = null;
+        public Match Match { get; set; } = null;
         public bool JoinSucceeded { get; set; } = false;
         public string JoinFailReason { get; set; } = "No such match exists";
     }

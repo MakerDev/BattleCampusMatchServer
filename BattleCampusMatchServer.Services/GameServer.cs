@@ -1,5 +1,5 @@
 ﻿using BattleCampus.Core;
-using BattleCampusMatchServer.Models;
+using BattleCampusMatchServer.Services.Models;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;

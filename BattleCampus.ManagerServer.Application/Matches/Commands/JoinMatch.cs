@@ -1,7 +1,6 @@
 ﻿using BattleCampus.Core;
-using BattleCampusMatchServer.Models;
-using BattleCampusMatchServer.Models.DTOs;
 using BattleCampusMatchServer.Services;
+using BattleCampusMatchServer.Services.Models.DTOs;
 using MediatR;
 using System;
 using System.Collections.Generic;

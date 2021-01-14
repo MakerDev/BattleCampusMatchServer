@@ -1,7 +1,7 @@
 ﻿using BattleCampus.Core;
 using BattleCampus.Persistence;
-using BattleCampusMatchServer.Models;
 using BattleCampusMatchServer.Services.Extensions;
+using BattleCampusMatchServer.Services.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
