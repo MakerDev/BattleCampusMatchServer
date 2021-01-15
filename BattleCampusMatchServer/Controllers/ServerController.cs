@@ -1,4 +1,5 @@
 ﻿using BattleCampus.Core;
+using BattleCampus.MatchServer.Application.Server.Commands;
 using BattleCampus.MatchServer.Application.Server.Query;
 using BattleCampusMatchServer.Services;
 using MediatR;
@@ -34,8 +35,10 @@ namespace BattleCampusMatchServer.Controllers
             var serverModels = new List<GameServerModel>();
             foreach (var server in servers)
             {
+                //TODO : Change "GameServer" to use GameServerModel as property
                 serverModels.Add(new GameServerModel
                 {
+                    Id = server.Id,
                     IpPortInfo = server.IpPortInfo,
                     MaxMatches = server.MaxMatches,
                     Name = server.Name,
@@ -54,10 +57,13 @@ namespace BattleCampusMatchServer.Controllers
 
 
         [Authorize]
-        [HttpGet]
-        public ActionResult<GameServerModel> GetServer(IpPortInfo ipPortInfo)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<GameServerModel>> GetServerAsync(Guid id)
         {
-            throw new NotImplementedException();
+            return Ok(await _mediator.Send(new GetServerWithID.Query
+            {
+                Id = id,
+            }));
         }
 
         [Authorize]
@@ -68,10 +74,16 @@ namespace BattleCampusMatchServer.Controllers
         }
 
         [Authorize]
-        [HttpPut("rename")]
-        public ActionResult RenameServer(string name, IpPortInfo ipPortInfo)
+        [HttpPut("rename/{id}")]
+        public async Task<ActionResult> RenameServerAsync(Guid id, [FromQuery] string name)
         {
-            throw new NotImplementedException();
+            await _mediator.Send(new Rename.Command
+            {
+                Id = id,
+                Name = name
+            });
+
+            return Ok();
         }
 
         [HttpPost("register/{name}")]
