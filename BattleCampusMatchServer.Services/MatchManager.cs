@@ -45,7 +45,7 @@ namespace BattleCampusMatchServer.Services
 
                 foreach (var serverModel in servers)
                 {
-                    var server = new GameServer(serverModel.Name, serverModel.IpPortInfo, _loggerFactory, serverModel.MaxMatches);
+                    var server = new GameServer(serverModel, _loggerFactory, serverModel.MaxMatches);
 
                     var result = Servers.TryAdd(server.IpPortInfo, server);
                     if (result == false)
@@ -94,6 +94,19 @@ namespace BattleCampusMatchServer.Services
             }
 
             server.DisconnectUser(connectionID);
+        }
+
+        public void RenameServer(IpPortInfo ipPortInfo, string newName)
+        {
+            var result = Servers.TryGetValue(ipPortInfo, out var server);
+
+            if (result == false)
+            {
+                _logger.LogError($"Failed to change name of server {ipPortInfo} as it doesn't exists in MatchManager");
+                return;
+            }
+
+            server.Name = newName;
         }
 
         public MatchCreationResult CreateNewMatch(string name, GameUser host)
@@ -169,8 +182,19 @@ namespace BattleCampusMatchServer.Services
                 return;
             }
 
-            //Register new servver
-            var server = new GameServer(name, ipPortInfo, _loggerFactory);
+            //Register new servver           
+            serverModel = new GameServerModel
+            {
+                IpPortInfo = ipPortInfo,
+                MaxMatches = maxMatches,
+                Name = name,
+                State = ServerState.Running,
+            };
+
+            _dbContext.Servers.Add(serverModel);
+            await _dbContext.SaveChangesAsync();
+
+            var server = new GameServer(serverModel, _loggerFactory);
             server.MaxMatches = maxMatches;
 
             var result = Servers.TryAdd(ipPortInfo, server);
@@ -182,14 +206,6 @@ namespace BattleCampusMatchServer.Services
                 return;
             }
 
-            _dbContext.Servers.Add(new GameServerModel
-            {
-                IpPortInfo = ipPortInfo,
-                MaxMatches = maxMatches,
-                Name = name,
-                State = ServerState.Running,
-            });
-            await _dbContext.SaveChangesAsync();
             _logger.LogInformation($"Registerd server {server}");
         }
 

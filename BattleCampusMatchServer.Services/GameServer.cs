@@ -13,7 +13,8 @@ namespace BattleCampusMatchServer.Services
     {
         private readonly ILogger<GameServer> _logger;
 
-        public string Name { get; private set; } = "Server";
+        public Guid Id { get; private set; }
+        public string Name { get; set; } = "Server";
         public int MaxMatches { get; set; } = 5;
         public IpPortInfo IpPortInfo { get; private set; } = new IpPortInfo();
         /// <summary>
@@ -25,12 +26,13 @@ namespace BattleCampusMatchServer.Services
         /// Key : connectionId of the user
         /// Value : connected User
         /// </summary>
-        public ConcurrentDictionary<GameUser, int> UserConnections { get; private set; } 
+        public ConcurrentDictionary<GameUser, int> UserConnections { get; private set; }
 
-        public GameServer(string name, IpPortInfo ipPortInfo, ILoggerFactory loggerFactory, int maxMatches = 5)
+        public GameServer(GameServerModel gameServerModel, ILoggerFactory loggerFactory, int maxMatches = 5)
         {
-            Name = name;
-            IpPortInfo = ipPortInfo;
+            Id = gameServerModel.Id;
+            Name = gameServerModel.Name;
+            IpPortInfo = gameServerModel.IpPortInfo;
             MaxMatches = maxMatches;
 
             Matches = new ConcurrentDictionary<string, Match>(Environment.ProcessorCount * 2, 128);

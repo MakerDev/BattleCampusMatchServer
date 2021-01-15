@@ -16,5 +16,6 @@ namespace BattleCampusMatchServer.Services
         Task RegisterGameServerAsync(string name, int maxMatches, IpPortInfo ipPortInfo);
         Task TurnOffServerAsync(IpPortInfo ipPortInfo);
         Task UnRegisterGameServerAsync(IpPortInfo serverIp);
+        void RenameServer(IpPortInfo ipPortInfo, string newName);
     }
 }
