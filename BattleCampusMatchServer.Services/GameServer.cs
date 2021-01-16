@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace BattleCampusMatchServer.Services
 {
@@ -23,8 +24,8 @@ namespace BattleCampusMatchServer.Services
         /// </summary>
         public ConcurrentDictionary<string, Match> Matches { get; private set; }
         /// <summary>
-        /// Key : connectionId of the user
-        /// Value : connected User
+        /// Key : Connected User. Users are compared equality by ID
+        /// Value : User's ConnectionID in game.
         /// </summary>
         public ConcurrentDictionary<GameUser, int> UserConnections { get; private set; }
 
@@ -75,6 +76,7 @@ namespace BattleCampusMatchServer.Services
             }
         }
 
+        //This is called by server. As server only knows connection Id for the client, GameUser cannot be passed.
         public void DisconnectUser(int connectionID)
         {
             var user = UserConnections.Keys.FirstOrDefault(x => x.ConnectionID == connectionID);
@@ -217,6 +219,16 @@ namespace BattleCampusMatchServer.Services
             }
 
             _logger.LogInformation($"Successfully created match {name} on server {this}");
+
+            //This is for the case where player quits game before he actually enters the GameScene so that BCNetworkManager,
+            //can't detect player enter and exit.
+            Task.Delay(5000).ContinueWith((t) =>
+            {
+                if (UserConnections.ContainsKey(host) == false)
+                {
+                    DeleteMatch(matchID);
+                }
+            });
 
             return new MatchCreationResult
             {

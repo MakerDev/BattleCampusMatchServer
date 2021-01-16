@@ -31,7 +31,7 @@ namespace BattleCampus.Core
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return ID.GetHashCode();
         }
 
         public override string ToString()
