@@ -60,7 +60,7 @@ namespace BattleCampusMatchServer.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<GameServerModel>> GetServerAsync(Guid id)
         {
-            return Ok(await _mediator.Send(new GetServerWithID.Query
+            return Ok(await _mediator.Send(new GetServerByID.Query
             {
                 Id = id,
             }));
