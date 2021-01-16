@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +24,14 @@ namespace BattleCampusMatchServer.Services
         /// Value : Match instance
         /// </summary>
         public ConcurrentDictionary<string, Match> Matches { get; private set; }
+
+        /// <summary>
+        /// Matches pending to be displayed for match list. When creating match, created match doesn't directly be added
+        /// to Matches above, for the case host user exits game before it enters GameScene, and NetworkManager doesn't
+        /// handle user's state correctly.
+        /// </summary>
+        public ConcurrentDictionary<string, Match> PendingMatches { get; private set; }
+
         /// <summary>
         /// Key : Connected User. Users are compared equality by ID
         /// Value : User's ConnectionID in game.
@@ -38,6 +47,7 @@ namespace BattleCampusMatchServer.Services
 
             Matches = new ConcurrentDictionary<string, Match>(Environment.ProcessorCount * 2, 128);
             UserConnections = new ConcurrentDictionary<GameUser, int>(Environment.ProcessorCount * 2, 256);
+            PendingMatches = new ConcurrentDictionary<string, Match>(Environment.ProcessorCount * 2, 64);
 
             _logger = loggerFactory.CreateLogger<GameServer>();
             _logger.LogInformation($"GameServer : {this} has been launched!");
@@ -51,11 +61,31 @@ namespace BattleCampusMatchServer.Services
 
         public void ConnectUser(GameUser user)
         {
-            var validMatch = Matches.TryGetValue(user.MatchID, out var match);
+            Match match;
 
-            if (validMatch == false)
+            if (user.IsHost)
             {
-                _logger.LogError($"Failed to connect {user} as Match {user.MatchID} doesn't exist");
+                var validMatch = PendingMatches.TryGetValue(user.MatchID, out match);
+
+                if (validMatch == false)
+                {
+                    _logger.LogError($"Failed to connect host user <{user}> as Match {user.MatchID} doesn't exist");
+                    return;
+                }
+
+                PendingMatches.Remove(user.MatchID, out var _);
+
+                Matches.TryAdd(user.MatchID, match);
+            }
+            else
+            {
+                var validMatch = Matches.TryGetValue(user.MatchID, out match);
+
+                if (validMatch == false)
+                {
+                    _logger.LogError($"Failed to connect {user} as Match {user.MatchID} doesn't exist");
+                    return;
+                }
             }
 
             _logger.LogInformation($"{user} is connected with connectionID : {user.ConnectionID} who is joining {match}");
@@ -175,6 +205,17 @@ namespace BattleCampusMatchServer.Services
             };
         }
 
+        private string GenerateUniqueMatchID()
+        {
+            var matchID = Utils.GenerateMatchID();
+            while (Matches.ContainsKey(matchID))
+            {
+                matchID = Utils.GenerateMatchID();
+            }
+
+            return matchID;
+        }
+
         public MatchCreationResult CreateMatch(string name, GameUser host)
         {
             if (Matches.Count >= MaxMatches)
@@ -190,23 +231,19 @@ namespace BattleCampusMatchServer.Services
             }
 
             //한 서버 인스턴스당으로 매치 메이커가 작동하므로, 한 서버 안에서만 중복 안되면 괜찮기는 함.
-            var matchID = Utils.GenerateMatchID();
-            while (Matches.ContainsKey(matchID))
-            {
-                matchID = Utils.GenerateMatchID();
-            }
+            var matchID = GenerateUniqueMatchID();
 
             var match = new Match
             {
-                MatchID = Utils.GenerateMatchID(),
+                MatchID = matchID,
                 Name = name,
                 IpPortInfo = IpPortInfo
             };
+            match.Players.Add(host);
 
             host.MatchID = match.MatchID;
 
-            match.Players.Add(host);
-            var result = Matches.TryAdd(match.MatchID, match);
+            var result = PendingMatches.TryAdd(match.MatchID, match);
 
             if (result == false)
             {
@@ -218,15 +255,17 @@ namespace BattleCampusMatchServer.Services
                 };
             }
 
-            _logger.LogInformation($"Successfully created match {name} on server {this}");
+            _logger.LogInformation($"{host.ID} successfully created match {name} on server {this}");
 
             //This is for the case where player quits game before he actually enters the GameScene so that BCNetworkManager,
             //can't detect player enter and exit.
             Task.Delay(5000).ContinueWith((t) =>
             {
-                if (UserConnections.ContainsKey(host) == false)
+                var hasRemoved = PendingMatches.Remove(matchID, out var deletedMatch);
+
+                if (hasRemoved)
                 {
-                    DeleteMatch(matchID);
+                    _logger.LogError($"Match {deletedMatch} has been removed as host failed to join the game");
                 }
             });
 
