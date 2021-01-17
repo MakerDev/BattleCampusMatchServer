@@ -36,7 +36,7 @@ namespace BattleCampus.Core
 
         public override string ToString()
         {
-            return $"{Name}({StudentID})";
+            return $"{ID}-{Name}({StudentID})";
         }
     }
 }
