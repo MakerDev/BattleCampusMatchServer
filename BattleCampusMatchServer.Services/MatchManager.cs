@@ -122,7 +122,7 @@ namespace BattleCampusMatchServer.Services
                 };
             }
 
-            //1. Find proper server : currently round robbin
+            //1. Find proper server : currently round robbin            
             var server = Servers.Values.ToList()[_lastUsedServerIndex];
             _lastUsedServerIndex = (_lastUsedServerIndex + 1) % Servers.Count;
             _logger.LogInformation($"Server <{server.Name}|{server.IpPortInfo}> is selected for match <{name}>");
@@ -177,8 +177,8 @@ namespace BattleCampusMatchServer.Services
             {
                 //Turn on server
                 _logger.LogWarning($"Already has {serverModel.IpPortInfo} in the database. Turning on the server.");
-                var existingServer = Servers[ipPortInfo];
-                existingServer.ResetServer();
+                var newServer = new GameServer(serverModel, _loggerFactory, serverModel.MaxMatches);
+                Servers.TryAdd(ipPortInfo, newServer);
                 return;
             }
 
@@ -228,6 +228,9 @@ namespace BattleCampusMatchServer.Services
 
             serverModel.State = ServerState.Off;
             await _dbContext.SaveChangesAsync();
+            Servers.Remove(ipPortInfo, out var server);
+
+            _logger.LogInformation($"Turned off {server}");
         }
 
         public async Task UnRegisterGameServerAsync(IpPortInfo ipPortInfo)
