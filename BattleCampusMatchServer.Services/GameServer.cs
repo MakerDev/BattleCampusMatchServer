@@ -33,6 +33,14 @@ namespace BattleCampusMatchServer.Services
         public ConcurrentDictionary<string, Match> PendingMatches { get; private set; }
 
         /// <summary>
+        /// Key : Pending User
+        /// Value : The match that the user is wating to join.
+        /// When creating or joining a match, the GameUser is added to this dictionary. 
+        /// When user is connected, then it's added to the match's Players list. 
+        /// </summary>
+        public ConcurrentDictionary<GameUser, string> PendingGameUsers { get; private set; } = new ConcurrentDictionary<GameUser, string>();
+
+        /// <summary>
         /// Key : Connected User. Users are compared equality by ID
         /// Value : User's ConnectionID in game.
         /// </summary>
@@ -63,6 +71,14 @@ namespace BattleCampusMatchServer.Services
         {
             Match match;
 
+            var hasPendingUser = PendingGameUsers.TryRemove(user, out var pendingMatchID);
+
+            if (hasPendingUser == false)
+            {
+                _logger.LogError($"No such pending user {user}");
+                return;
+            }
+
             if (user.IsHost)
             {
                 var validMatch = PendingMatches.TryGetValue(user.MatchID, out match);
@@ -74,8 +90,9 @@ namespace BattleCampusMatchServer.Services
                 }
 
                 PendingMatches.Remove(user.MatchID, out var _);
-
                 Matches.TryAdd(user.MatchID, match);
+
+                //match.Players[0] = user;
             }
             else
             {
@@ -87,6 +104,8 @@ namespace BattleCampusMatchServer.Services
                     return;
                 }
             }
+
+            match.Players.Add(user);
 
             _logger.LogInformation($"{user} is connected with connectionID : {user.ConnectionID} who is joining {match}");
 
@@ -108,7 +127,7 @@ namespace BattleCampusMatchServer.Services
 
         //This is called by server. As server only knows connection Id for the client, GameUser cannot be passed.
         public void DisconnectUser(int connectionID)
-        {
+        {            
             var user = UserConnections.Keys.FirstOrDefault(x => x.ConnectionID == connectionID);
 
             if (user == null)
@@ -120,8 +139,8 @@ namespace BattleCampusMatchServer.Services
 
             if (user.MatchID != null)
             {
-                RemovePlayerFromMatch(user.MatchID, user);
                 _logger.LogInformation($"Disconnected {user} with connectionID: {connectionID} who was joining {user.MatchID}");
+                RemovePlayerFromMatch(user.MatchID, user);
                 user.MatchID = null;
             }
 
@@ -186,9 +205,11 @@ namespace BattleCampusMatchServer.Services
 
             user.MatchID = matchID;
 
-            if (match.Players.Contains(user) == false)
+            var userAddResult = PendingGameUsers.TryAdd(user, matchID);
+
+            if (userAddResult)
             {
-                match.Players.Add(user);
+                //match.Players.Add(user);
 
                 _logger.LogInformation($"{user} joined to {match}");
             }
@@ -239,7 +260,19 @@ namespace BattleCampusMatchServer.Services
                 Name = name,
                 IpPortInfo = IpPortInfo
             };
-            match.Players.Add(host);
+
+            //이런거 다 private internal method로 추출
+            var userAddResult = PendingGameUsers.TryAdd(host, matchID);
+            if (userAddResult == false)
+            {
+                _logger.LogError($"Failed to add {host} to pending list");
+                return new MatchCreationResult
+                {
+                    IsCreationSuccess = false,
+                    CreationFailReason = $"Failed to add {host} to pending list",
+                };
+            }
+            //match.Players.Add(host);
 
             host.MatchID = match.MatchID;
 
