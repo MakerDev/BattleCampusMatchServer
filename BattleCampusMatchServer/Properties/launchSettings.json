@@ -19,7 +19,7 @@
     },
     "BattleCampusMatchServer": {
       "commandName": "Project",
-      "launchBrowser": true,
+      "launchBrowser": false,
       "launchUrl": "swagger",
       "applicationUrl": "https://localhost:4001;http://localhost:4000",
       "environmentVariables": {

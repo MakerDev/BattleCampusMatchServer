@@ -127,7 +127,7 @@ namespace BattleCampusMatchServer.Services
 
         //This is called by server. As server only knows connection Id for the client, GameUser cannot be passed.
         public void DisconnectUser(int connectionID)
-        {            
+        {
             var user = UserConnections.Keys.FirstOrDefault(x => x.ConnectionID == connectionID);
 
             if (user == null)
@@ -294,11 +294,17 @@ namespace BattleCampusMatchServer.Services
             //can't detect player enter and exit.
             Task.Delay(5000).ContinueWith((t) =>
             {
+                var hasRemovedUser = PendingGameUsers.Remove(host, out var _);
                 var hasRemoved = PendingMatches.Remove(matchID, out var deletedMatch);
+
+                if (hasRemovedUser)
+                {
+                    _logger.LogError($"Host user {host} has been removed as host failed to join the game.");
+                }
 
                 if (hasRemoved)
                 {
-                    _logger.LogError($"Match {deletedMatch} has been removed as host failed to join the game");
+                    _logger.LogError($"Match {deletedMatch} has been removed as host failed to join the game.");
                 }
             });
 
