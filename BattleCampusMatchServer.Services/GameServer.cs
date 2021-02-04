@@ -179,6 +179,19 @@ namespace BattleCampusMatchServer.Services
             }
         }
 
+        public void NotifyMatchStarted(string matchID)
+        {
+            var result = Matches.TryGetValue(matchID, out var match);
+
+            if (result == false)
+            {
+                _logger.LogError($"Cannot start {matchID}, as it doesn't exist");
+                return;
+            }
+
+            match.HasStarted = true;
+        }
+
         public MatchJoinResult JoinMatch(string matchID, GameUser user)
         {
             var result = Matches.TryGetValue(matchID, out var match);
@@ -195,12 +208,24 @@ namespace BattleCampusMatchServer.Services
 
             if (match.CanJoin == false)
             {
-                return new MatchJoinResult
+                if (match.HasStarted)
                 {
-                    JoinFailReason = $"Match {matchID} is already full!",
-                    JoinSucceeded = false,
-                    Match = match
-                };
+                    return new MatchJoinResult
+                    {
+                        JoinFailReason = $"Match {matchID} has already started.",
+                        JoinSucceeded = false,
+                        Match = match
+                    };
+                }
+                else
+                {
+                    return new MatchJoinResult
+                    {
+                        JoinFailReason = $"Match {matchID} is already full!",
+                        JoinSucceeded = false,
+                        Match = match
+                    };
+                }                
             }
 
             user.MatchID = matchID;
@@ -275,6 +300,7 @@ namespace BattleCampusMatchServer.Services
             //match.Players.Add(host);
 
             host.MatchID = match.MatchID;
+            host.IsHost = true;
 
             var result = PendingMatches.TryAdd(match.MatchID, match);
 

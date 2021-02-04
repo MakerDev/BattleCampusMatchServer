@@ -50,20 +50,20 @@ namespace BattleCampusMatchServer.Controllers
         }
 
         [HttpPost("join")]
-        public async Task<ActionResult<MatchJoinResult>> JoinMatchAsync([FromQuery] string matchID,[FromBody]JoinMatch.Command command)
+        public async Task<ActionResult<MatchJoinResult>> JoinMatchAsync([FromQuery] string matchID, [FromBody] JoinMatch.Command command)
         {
             command.MatchID = matchID;
             var matchJoinResult = await _mediator.Send(command);
             return Ok(matchJoinResult);
         }
 
-        //[HttpPost("notify/exit")]
-        //public ActionResult NotifyPlayerExitMatch([FromQuery] string matchID, [FromQuery] string serverIp, [FromBody] GameUser user)
-        //{
-        //    _matchManager.NotifyPlayerExitGame(serverIp, matchID, user);
+        [HttpPost("start")]
+        public async Task<ActionResult> NotifyStartMatch([FromBody] NotifyStartMatch.Command command) 
+        {
+            await _mediator.Send(command);
 
-        //    return Ok();
-        //}
+            return Ok();
+        }
 
         [HttpPost("notify/connect")]
         public async Task<ActionResult> NotifyUserConnectAsync([FromQuery] int connectionID, [FromBody] NotifyGameUserConnect.Command command)
