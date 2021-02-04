@@ -127,7 +127,7 @@ namespace BattleCampusMatchServer.Services
 
         //This is called by server. As server only knows connection Id for the client, GameUser cannot be passed.
         public void DisconnectUser(int connectionID)
-        {            
+        {
             var user = UserConnections.Keys.FirstOrDefault(x => x.ConnectionID == connectionID);
 
             if (user == null)
@@ -179,6 +179,19 @@ namespace BattleCampusMatchServer.Services
             }
         }
 
+        public void NotifyMatchStarted(string matchID)
+        {
+            var result = Matches.TryGetValue(matchID, out var match);
+
+            if (result == false)
+            {
+                _logger.LogError($"Cannot start {matchID}, as it doesn't exist");
+                return;
+            }
+
+            match.HasStarted = true;
+        }
+
         public MatchJoinResult JoinMatch(string matchID, GameUser user)
         {
             var result = Matches.TryGetValue(matchID, out var match);
@@ -195,12 +208,24 @@ namespace BattleCampusMatchServer.Services
 
             if (match.CanJoin == false)
             {
-                return new MatchJoinResult
+                if (match.HasStarted)
                 {
-                    JoinFailReason = $"Match {matchID} is already full!",
-                    JoinSucceeded = false,
-                    Match = match
-                };
+                    return new MatchJoinResult
+                    {
+                        JoinFailReason = $"Match {matchID} has already started.",
+                        JoinSucceeded = false,
+                        Match = match
+                    };
+                }
+                else
+                {
+                    return new MatchJoinResult
+                    {
+                        JoinFailReason = $"Match {matchID} is already full!",
+                        JoinSucceeded = false,
+                        Match = match
+                    };
+                }                
             }
 
             user.MatchID = matchID;
@@ -275,6 +300,7 @@ namespace BattleCampusMatchServer.Services
             //match.Players.Add(host);
 
             host.MatchID = match.MatchID;
+            host.IsHost = true;
 
             var result = PendingMatches.TryAdd(match.MatchID, match);
 
@@ -294,11 +320,17 @@ namespace BattleCampusMatchServer.Services
             //can't detect player enter and exit.
             Task.Delay(5000).ContinueWith((t) =>
             {
+                var hasRemovedUser = PendingGameUsers.Remove(host, out var _);
                 var hasRemoved = PendingMatches.Remove(matchID, out var deletedMatch);
+
+                if (hasRemovedUser)
+                {
+                    _logger.LogError($"Host user {host} has been removed as host failed to join the game.");
+                }
 
                 if (hasRemoved)
                 {
-                    _logger.LogError($"Match {deletedMatch} has been removed as host failed to join the game");
+                    _logger.LogError($"Match {deletedMatch} has been removed as host failed to join the game.");
                 }
             });
 

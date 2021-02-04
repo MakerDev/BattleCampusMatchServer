@@ -147,6 +147,18 @@ namespace BattleCampusMatchServer.Services
             return server.JoinMatch(matchID, user);
         }
 
+        public void NotifyMatchStarted(IpPortInfo serverIp, string matchID)
+        {
+            var serverExists = Servers.TryGetValue(serverIp, out var server);
+
+            if (serverExists == false)
+            {
+                _logger.LogError($"Trying to start {matchID} from not existing server {server}");
+                return;
+            }
+
+            server.NotifyMatchStarted(matchID);
+        }
 
         //TODO : cache this
         //서버에서 매치정보관련 이벤트가 발생하면 내부 캐시를 업데이트 하는 식으로 가도 될 듯.

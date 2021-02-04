@@ -12,6 +12,7 @@ namespace BattleCampusMatchServer.Services.Models.DTOs
         public IpPortInfo IpPortInfo { get; set; }
         public int MaxPlayers { get; set; } = 6;
         public int CurrentPlayersCount { get; set; }
+        public bool CanJoin { get; set; }
 
         public static MatchDTO CreateFromMatch(Match match)
         {
@@ -21,7 +22,8 @@ namespace BattleCampusMatchServer.Services.Models.DTOs
                 CurrentPlayersCount = match.CurrentPlayersCount,
                 IpPortInfo = match.IpPortInfo,
                 MatchID = match.MatchID,
-                MaxPlayers = match.MaxPlayers
+                MaxPlayers = match.MaxPlayers,
+                CanJoin = match.CanJoin
             };
         }
     }
