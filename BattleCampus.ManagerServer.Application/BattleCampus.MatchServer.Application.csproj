@@ -5,8 +5,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="User\Query\PortalLogin.cs~RF140dd356.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="9.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>

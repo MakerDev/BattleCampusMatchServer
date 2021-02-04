@@ -1,4 +1,5 @@
-﻿using BattleCampus.MatchServer.Application.User;
+﻿using BattleCampus.Core;
+using BattleCampus.MatchServer.Application.User;
 using BattleCampus.MatchServer.Application.User.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -29,6 +30,22 @@ namespace BattleCampusMatchServer.Controllers
             var adminUser = await _mediator.Send(query);
 
             return Ok(adminUser);
+        }
+
+        [AllowAnonymous]
+        [HttpPost("portal/login")]
+        public async Task<ActionResult<bool>> LoginWithPortalAsync([FromBody] PortalLogin.Query query)
+        {
+            var result = await _mediator.Send(query);
+
+            if (result)
+            {
+                return Ok(true);
+            }
+            else
+            {
+                return BadRequest(false);
+            }
         }
     }
 }

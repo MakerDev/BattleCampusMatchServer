@@ -75,6 +75,7 @@ namespace BattleCampusMatchServer
                 };
             });
 
+            services.AddHttpClient();
             services.AddControllers();
             services.AddMediatR(typeof(CreateMatch.Command));
             services.AddScoped<IMatchManager, MatchManager>();
