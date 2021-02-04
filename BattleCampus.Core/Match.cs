@@ -9,6 +9,8 @@ namespace BattleCampus.Core
         public string MatchID { get; set; }
         public IpPortInfo IpPortInfo { get; set; }
         public int MaxPlayers { get; set; } = 6;
+        public bool HasStarted { get; set; } = false;
+
         //TODO: make this concurrent list?
         public List<GameUser> Players { get; set; } = new List<GameUser>();
         public int CurrentPlayersCount
@@ -23,7 +25,7 @@ namespace BattleCampus.Core
         {
             get
             {
-                return CurrentPlayersCount != MaxPlayers;
+                return (CurrentPlayersCount != MaxPlayers && HasStarted == false);
             }
         }
 
