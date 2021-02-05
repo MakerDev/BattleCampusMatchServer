@@ -147,6 +147,19 @@ namespace BattleCampusMatchServer.Services
             return server.JoinMatch(matchID, user);
         }
 
+        public void RemoveMatch(IpPortInfo serverIp, string matchID)
+        {
+            var serverExists = Servers.TryGetValue(serverIp, out var server);
+
+            if (serverExists == false)
+            {
+                _logger.LogError("Trying to delete match from server which does not exist.");
+                return;
+            }
+
+            server.DeleteMatch(matchID);
+        }
+
         public void NotifyMatchStarted(IpPortInfo serverIp, string matchID)
         {
             var serverExists = Servers.TryGetValue(serverIp, out var server);

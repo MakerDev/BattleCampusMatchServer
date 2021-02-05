@@ -5,8 +5,10 @@ using BattleCampusMatchServer.Services;
 using BattleCampusMatchServer.Services.Models;
 using BattleCampusMatchServer.Services.Models.DTOs;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Update.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -47,6 +49,15 @@ namespace BattleCampusMatchServer.Controllers
             });
 
             return Ok(result);
+        }
+
+        [HttpDelete("delete")]
+        [Authorize]
+        public async Task<ActionResult> DeleteMatchAsync(RemoveMatch.Command command)
+        {
+            await _mediator.Send(command);
+
+            return Ok();
         }
 
         [HttpPost("join")]

@@ -5,6 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="User\Commands\**" />
+    <EmbeddedResource Remove="User\Commands\**" />
+    <None Remove="User\Commands\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="User\Query\PortalLogin.cs~RF140dd356.TMP" />
   </ItemGroup>
 
@@ -17,10 +23,6 @@
   <ItemGroup>
     <ProjectReference Include="..\BattleCampus.ReportServer.Persistence\BattleCampus.Persistence.csproj" />
     <ProjectReference Include="..\BattleCampusMatchServer.Services\BattleCampusMatchServer.Services.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="User\Commands\" />
   </ItemGroup>
 
 </Project>
