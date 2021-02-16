@@ -19,5 +19,6 @@ namespace BattleCampusMatchServer.Services
         void RenameServer(IpPortInfo ipPortInfo, string newName);
         void NotifyMatchStarted(IpPortInfo serverIp, string matchID);
         void RemoveMatch(IpPortInfo serverIp, string matchID);
+        GameServer GetServer(IpPortInfo ipPortInfo);
     }
 }

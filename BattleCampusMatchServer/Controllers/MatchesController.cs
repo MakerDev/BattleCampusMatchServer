@@ -76,6 +76,14 @@ namespace BattleCampusMatchServer.Controllers
             return Ok();
         }
 
+        [HttpPost("complete")]
+        public async Task<ActionResult> NotifyComleteMatch([FromBody] NotifyCompleteMatch.Command command)
+        {
+            await _mediator.Send(command);
+
+            return Ok();
+        }
+
         [HttpPost("notify/connect")]
         public async Task<ActionResult> NotifyUserConnectAsync([FromQuery] int connectionID, [FromBody] NotifyGameUserConnect.Command command)
         {

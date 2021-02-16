@@ -67,6 +67,17 @@ namespace BattleCampusMatchServer.Services
             Matches.Clear();
         }
 
+        public bool MakeHost(string matchID, GameUser newHostUser)
+        {
+
+
+            return false;
+        }
+
+        /// <summary>
+        /// User must come with proper matchID
+        /// </summary>
+        /// <param name="user"></param>
         public void ConnectUser(GameUser user)
         {
             Match match;
@@ -81,7 +92,8 @@ namespace BattleCampusMatchServer.Services
 
             if (user.IsHost)
             {
-                var validMatch = PendingMatches.TryGetValue(user.MatchID, out match);
+                //var validMatch = PendingMatches.TryGetValue(user.MatchID, out match);
+                var validMatch = PendingMatches.TryRemove(user.MatchID, out match);
 
                 if (validMatch == false)
                 {
@@ -89,14 +101,16 @@ namespace BattleCampusMatchServer.Services
                     return;
                 }
 
-                PendingMatches.Remove(user.MatchID, out var _);
                 Matches.TryAdd(user.MatchID, match);
-
-                //match.Players[0] = user;
             }
             else
             {
                 var validMatch = Matches.TryGetValue(user.MatchID, out match);
+
+                if (validMatch == false)
+                {
+                    validMatch = PendingMatches.TryGetValue(user.MatchID, out match);
+                }
 
                 if (validMatch == false)
                 {
@@ -141,7 +155,6 @@ namespace BattleCampusMatchServer.Services
             {
                 _logger.LogInformation($"Disconnected {user} with connectionID: {connectionID} who was joining {user.MatchID}");
                 RemovePlayerFromMatch(user.MatchID, user);
-                user.MatchID = null;
             }
 
             UserConnections.TryRemove(user, out var _);
@@ -157,33 +170,82 @@ namespace BattleCampusMatchServer.Services
                 return;
             }
 
-            bool removeResult;
-
             var player = match.Players.Find((x) => x.ID == user.ID);
-            removeResult = match.Players.Remove(player);
+            var removeResult = match.Players.Remove(player);
 
             if (removeResult == false)
             {
                 _logger.LogError($"{user} tried to exit {match} which he is not joining");
             }
 
-            //Set current joining match to null;
-            user.MatchID = null;
+            //Move player to pending list.
+            //여기서 User connection의 matchID를 초기화 해 주어야 나중에 disconnect시 오류가 발생하지 않음
+            var connectedUser = UserConnections.Keys.FirstOrDefault(x => x.ID == user.ID);
+            if (connectedUser != null)
+            {
+                connectedUser.MatchID = null;
+            }
 
-            //Delete Match itself if no more player is left.
+            PendingGameUsers.TryAdd(user, matchID);
+
+            Task.Delay(8000).ContinueWith(t =>
+            {
+                var userRemoved = PendingGameUsers.TryRemove(user, out var _);
+
+                if (userRemoved)
+                {
+                    _logger.LogError($"Removed pending user {user} as he failed to re-join to match {matchID}");
+                }
+            });
+
             if (match.CurrentPlayersCount <= 0)
             {
-                _logger.LogInformation($"Removed {match} as no more player is left");
+                _logger.LogInformation($"Moved {match} to pending list as no more player is left");
 
-                DeleteMatch(matchID);
+                //Move match to pending list
+                Matches.Remove(matchID, out var _);
+                PendingMatches.TryAdd(matchID, match);
+
+                //Remove pending match after 30sec.
+                Task.Delay(30000).ContinueWith((t) =>
+                {
+                    var hasRemovedMatch = PendingMatches.Remove(matchID, out var deletedMatch);
+
+                    if (hasRemovedMatch)
+                    {
+                        _logger.LogError($"Pending match {deletedMatch} has been removed as no player is joining this match.");
+                    }
+                });
             }
+        }
+
+        public void NofityMatchComplete(string matchID)
+        {
+            var hasMatch = Matches.TryGetValue(matchID, out var match);
+
+            if (hasMatch == false)
+            {
+                _logger.LogError($"Cannot notify completion {matchID}, as it doesn't exist");
+                return;
+            }
+
+            match.HasStarted = false;
+
+            //Foreach를 쓰면, 리스트 자체가 변경되어서 exception발생
+            //Remove all players
+            for (int i = 0; i < match.Players.Count; i++)
+            {
+                RemovePlayerFromMatch(matchID, match.Players[0]);
+            }
+
+            _logger.LogInformation($"Match {match} is completed!");
         }
 
         public void NotifyMatchStarted(string matchID)
         {
-            var result = Matches.TryGetValue(matchID, out var match);
+            var hasMatch = Matches.TryGetValue(matchID, out var match);
 
-            if (result == false)
+            if (hasMatch == false)
             {
                 _logger.LogError($"Cannot start {matchID}, as it doesn't exist");
                 return;
@@ -225,7 +287,7 @@ namespace BattleCampusMatchServer.Services
                         JoinSucceeded = false,
                         Match = match
                     };
-                }                
+                }
             }
 
             user.MatchID = matchID;
@@ -318,7 +380,7 @@ namespace BattleCampusMatchServer.Services
 
             //This is for the case where player quits game before he actually enters the GameScene so that BCNetworkManager,
             //can't detect player enter and exit.
-            Task.Delay(5000).ContinueWith((t) =>
+            Task.Delay(8000).ContinueWith((t) =>
             {
                 var hasRemovedUser = PendingGameUsers.Remove(host, out var _);
                 var hasRemoved = PendingMatches.Remove(matchID, out var deletedMatch);
@@ -341,6 +403,10 @@ namespace BattleCampusMatchServer.Services
             };
         }
 
+        /// <summary>
+        /// This is only for admins to kill problematic matches.
+        /// </summary>
+        /// <param name="matchID"></param>
         public void DeleteMatch(string matchID)
         {
             var hasMatch = Matches.ContainsKey(matchID);
