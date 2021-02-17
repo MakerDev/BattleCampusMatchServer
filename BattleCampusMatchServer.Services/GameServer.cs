@@ -67,9 +67,31 @@ namespace BattleCampusMatchServer.Services
             Matches.Clear();
         }
 
-        public bool MakeHost(string matchID, GameUser newHostUser)
+        public bool TryMakeHost(GameUser user)
         {
+            var connectedUser = UserConnections.Keys.FirstOrDefault(x => x.ID == user.ID);
 
+            if (connectedUser == null)
+            {
+                _logger.LogError($"Failed to make {user} host of Match {user.MatchID} as the user is not connected.");
+                return false;
+            }
+
+            var isPendingMatch = PendingMatches.TryGetValue(user.MatchID, out var match);
+            var isMatch = Matches.TryGetValue(user.MatchID, out match);
+
+            if (isPendingMatch == false && isMatch == false)
+            {
+                _logger.LogError($"Failed to make {user} host of Match {user.MatchID} as the match doesn't exist");
+                return false;
+            }
+
+            if (isPendingMatch)
+            {
+                //Move to Matches
+                PendingMatches.TryRemove(user.MatchID, out match);
+                Matches.TryAdd(user.MatchID, match);
+            }
 
             return false;
         }
@@ -90,29 +112,17 @@ namespace BattleCampusMatchServer.Services
                 return;
             }
 
-            if (user.IsHost)
+            var validMatch = Matches.TryGetValue(user.MatchID, out match);
+
+            if (validMatch == false)
             {
-                //var validMatch = PendingMatches.TryGetValue(user.MatchID, out match);
-                var validMatch = PendingMatches.TryRemove(user.MatchID, out match);
+                validMatch = PendingMatches.TryRemove(user.MatchID, out match);
 
-                if (validMatch == false)
+                if (validMatch)
                 {
-                    _logger.LogError($"Failed to connect host user <{user}> as Match {user.MatchID} doesn't exist");
-                    return;
+                    Matches.TryAdd(user.MatchID, match);
                 }
-
-                Matches.TryAdd(user.MatchID, match);
-            }
-            else
-            {
-                var validMatch = Matches.TryGetValue(user.MatchID, out match);
-
-                if (validMatch == false)
-                {
-                    validMatch = PendingMatches.TryGetValue(user.MatchID, out match);
-                }
-
-                if (validMatch == false)
+                else
                 {
                     _logger.LogError($"Failed to connect {user} as Match {user.MatchID} doesn't exist");
                     return;
@@ -207,7 +217,9 @@ namespace BattleCampusMatchServer.Services
                 PendingMatches.TryAdd(matchID, match);
 
                 //Remove pending match after 30sec.
-                Task.Delay(30000).ContinueWith((t) =>
+                //이게 기가 막힌 타이밍에 겹치면 새로운 PendingList에 추가하자마자, Remove가 실행되면서, 새롭게 PendingList에 추가된 애를
+                //바로 지워버리고, 이러면 애들이 join을 못하게 된다. 따라서, 단순 매치 ID만 가지고 지우면 안되고, 이 연산에 대한 Guid를 함께 봐야한다.
+                var t = Task.Delay(30000).ContinueWith((t) =>
                 {
                     var hasRemovedMatch = PendingMatches.Remove(matchID, out var deletedMatch);
 
@@ -215,7 +227,7 @@ namespace BattleCampusMatchServer.Services
                     {
                         _logger.LogError($"Pending match {deletedMatch} has been removed as no player is joining this match.");
                     }
-                });
+                });                
             }
         }
 
@@ -362,7 +374,9 @@ namespace BattleCampusMatchServer.Services
             //match.Players.Add(host);
 
             host.MatchID = match.MatchID;
-            host.IsHost = true;
+
+            //HACK : 이제 호스트 시스템 없어..
+            host.IsHost = false;
 
             var result = PendingMatches.TryAdd(match.MatchID, match);
 

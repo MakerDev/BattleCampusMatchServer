@@ -76,6 +76,14 @@ namespace BattleCampusMatchServer.Controllers
             return Ok();
         }
 
+        [HttpPost("makehost")]
+        public async Task<ActionResult> NotifyStartMatch([FromBody] MakeHost.Command command)
+        {
+            var result = await _mediator.Send(command);
+
+            return Ok(result);
+        }
+
         [HttpPost("complete")]
         public async Task<ActionResult> NotifyComleteMatch([FromBody] NotifyCompleteMatch.Command command)
         {
