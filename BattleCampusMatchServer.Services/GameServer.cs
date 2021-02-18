@@ -62,15 +62,38 @@ namespace BattleCampusMatchServer.Services
             _logger = loggerFactory.CreateLogger<GameServer>();
             _logger.LogInformation($"GameServer : {this} has been launched!");
 
-            //var timer = new System.Timers.Timer();
-            //timer.Interval = 15 * 1000; //15sec
-            //timer.Elapsed += CleanPendingLists;
+            var timer = new System.Timers.Timer();
+            timer.Interval = 30 * 1000; //15sec
+            timer.Elapsed += CleanPendingLists;
         }
 
         private void CleanPendingLists(object sender, ElapsedEventArgs e)
         {
+            var matchesToRemove = PendingMatches.Values.Where(p =>
+            {
+                var timespan = DateTime.Now - p.CreatedDate;
 
+                return timespan.TotalSeconds >= 30;
+            }).ToList();
 
+            foreach (var matchToRemove in matchesToRemove)
+            {
+                PendingMatches.Remove(matchToRemove.MatchID, out var _);
+                _logger.LogInformation($"Removed match : {matchToRemove} from pending list as it's been not used for the last 30seconds.");
+            }
+
+            var usersToRemove = PendingGameUsers.Keys.Where(p =>
+            {
+                var timespan = DateTime.Now - p.CreatedTime;
+
+                return timespan.TotalSeconds >= 30;
+            }).ToList();
+
+            foreach (var userToRemove in usersToRemove)
+            {
+                PendingGameUsers.Remove(userToRemove, out var _);
+                _logger.LogInformation($"Removed user : {userToRemove} from pending list as it's been not used for the last 30seconds.");
+            }
         }
 
         public void ResetServer()
@@ -319,10 +342,6 @@ namespace BattleCampusMatchServer.Services
 
             if (match.CurrentPlayersCount <= 0)
             {
-                //위에서 싱크 Guid를 바꾸는 도중에 아래 태스크가 유저를 지워버릴 수 있으니,
-                //안전빵으로 넣는다.
-                PendingGameUsers.TryAdd(user, matchID);
-
                 //Move match to pending list
                 Matches.Remove(matchID, out var _);
                 var result = TryAddToPendingMatches(match);
@@ -359,13 +378,6 @@ namespace BattleCampusMatchServer.Services
             }
 
             match.HasStarted = false;
-
-            //Foreach를 쓰면, 리스트 자체가 변경되어서 exception발생
-            //Remove all players
-            //for (int i = 0; i < match.Players.Count; i++)
-            //{
-            //    RemovePlayerFromMatch(matchID, match.Players[0]);
-            //}
 
             _logger.LogInformation($"Match {match} is completed!");
         }
@@ -441,7 +453,7 @@ namespace BattleCampusMatchServer.Services
 
             //This is for the case where player quits game before he actually enters the GameScene so that BCNetworkManager,
             //can't detect player enter and exit.
-            Task.Delay(8000).ContinueWith((t) =>
+            Task.Delay(10000).ContinueWith((t) =>
             {
                 var pendingMatchRemoveResult = TryRemovePendingMatch(matchID, out var pendingMatch);
 
@@ -454,7 +466,7 @@ namespace BattleCampusMatchServer.Services
 
                 if (userRemoveResult)
                 {
-                    _logger.LogError($"Pending User {pendingUser} has beed removed as he failed to join game {matchID}.");
+                    _logger.LogError($"Pending User {pendingUser} has beed removed as he failed to join game {matchID} he started.");
                 }
             });
 
@@ -502,8 +514,18 @@ namespace BattleCampusMatchServer.Services
             }
 
             user.MatchID = matchID;
-            
+
             var userAddResult = TryAddToPendingUsers(user, matchID);
+
+            Task.Delay(10000).ContinueWith((t) =>
+            {
+                var userRemoveResult = TryRemovePendingUserByID(user.ID, out var pendingUser);
+
+                if (userRemoveResult)
+                {
+                    _logger.LogError($"Pending User {pendingUser} has beed removed as he failed to join game {matchID}.");
+                }
+            });
 
             if (userAddResult)
             {
