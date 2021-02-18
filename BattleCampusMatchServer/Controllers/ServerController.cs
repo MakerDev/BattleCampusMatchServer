@@ -86,6 +86,18 @@ namespace BattleCampusMatchServer.Controllers
             return Ok();
         }
 
+        [Authorize]
+        [HttpGet("Debug/{id}")]
+        public async Task<ActionResult> GetGameServerAsync(Guid id)
+        {
+            var server = await _mediator.Send(new GetGameServer.Query
+            {
+                Id = id,
+            });
+
+            return Ok();
+        }
+
         [HttpPost("register/{name}")]
         public async Task<ActionResult> RegisterServerAsync(string name, [FromQuery] int maxMatches, [FromBody] IpPortInfo ipPortInfo)
         {

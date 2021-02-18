@@ -164,6 +164,10 @@ namespace BattleCampusMatchServer.Services
                 _logger.LogWarning($"Duplicate connection with ID:{user.ConnectionID} and User:{user}");
             }
 
+            //If all done successfully, then remove pending list.
+            PendingMatches.TryRemove(pendingMatchID, out var _);
+            PendingGameUsers.TryRemove(user, out var _);
+
             return true;
         }
 
@@ -278,7 +282,14 @@ namespace BattleCampusMatchServer.Services
                 return;
             }
 
-            var player = match.Players.Find((x) => x.ID == user.ID);
+            var player = match.Players.FirstOrDefault((x) => x.ID == user.ID);
+
+            if (player == null)
+            {
+                _logger.LogError($"Failed to find user {user}");
+                return;
+            }
+
             var removeResult = match.Players.Remove(player);
 
             if (removeResult == false)
@@ -491,13 +502,11 @@ namespace BattleCampusMatchServer.Services
             }
 
             user.MatchID = matchID;
-
-            var userAddResult = PendingGameUsers.TryAdd(user, matchID);
+            
+            var userAddResult = TryAddToPendingUsers(user, matchID);
 
             if (userAddResult)
             {
-                //match.Players.Add(user);
-
                 _logger.LogInformation($"{user} joined to {match}");
             }
             else
