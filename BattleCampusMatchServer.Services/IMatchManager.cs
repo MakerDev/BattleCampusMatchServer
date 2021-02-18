@@ -8,7 +8,7 @@ namespace BattleCampusMatchServer.Services
     public interface IMatchManager
     {
         IEnumerable<GameServer> GetServers();
-        void ConnectUser(IpPortInfo serverIpInfo, GameUser user);
+        bool ConnectUser(IpPortInfo serverIpInfo, GameUser user);
         MatchCreationResult CreateNewMatch(string name, GameUser host);
         void DisconnectUser(IpPortInfo serverIp, int connectionID);
         List<Match> GetMatches();

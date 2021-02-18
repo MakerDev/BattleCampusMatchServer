@@ -12,13 +12,13 @@ namespace BattleCampus.MatchServer.Application.Matches.Commands
 {
     public class NotifyGameUserConnect
     {
-        public class Command : IRequest
+        public class Command : IRequest<bool>
         {
             public IpPortInfo IpPortInfo { get; set; }
             public GameUser User { get; set; }
         }
 
-        public class Handler : IRequestHandler<Command>
+        public class Handler : IRequestHandler<Command, bool>
         {
             private readonly IMatchManager _matchManager;
 
@@ -27,11 +27,11 @@ namespace BattleCampus.MatchServer.Application.Matches.Commands
                 _matchManager = matchManager;
             }
 
-            public Task<Unit> Handle(Command request, CancellationToken cancellationToken)
+            public Task<bool> Handle(Command request, CancellationToken cancellationToken)
             {
-                _matchManager.ConnectUser(request.IpPortInfo, request.User);
+                var result = _matchManager.ConnectUser(request.IpPortInfo, request.User);
 
-                return Task.FromResult(Unit.Value);
+                return Task.FromResult(result);
             }
         }
     }

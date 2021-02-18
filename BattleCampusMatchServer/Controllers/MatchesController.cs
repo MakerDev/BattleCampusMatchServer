@@ -69,7 +69,7 @@ namespace BattleCampusMatchServer.Controllers
         }
 
         [HttpPost("start")]
-        public async Task<ActionResult> NotifyStartMatch([FromBody] NotifyStartMatch.Command command) 
+        public async Task<ActionResult> NotifyStartMatch([FromBody] NotifyStartMatch.Command command)
         {
             await _mediator.Send(command);
 
@@ -97,9 +97,14 @@ namespace BattleCampusMatchServer.Controllers
         {
             command.User.ConnectionID = connectionID;
 
-            await _mediator.Send(command);
+            var success = await _mediator.Send(command);
 
-            return Ok();
+            if (success)
+            {
+                return Ok();
+            }
+
+            return BadRequest();
         }
 
         [HttpPost("notify/disconnect")]

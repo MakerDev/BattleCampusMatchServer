@@ -7,7 +7,9 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace BattleCampusMatchServer.Services
 {
@@ -59,6 +61,16 @@ namespace BattleCampusMatchServer.Services
 
             _logger = loggerFactory.CreateLogger<GameServer>();
             _logger.LogInformation($"GameServer : {this} has been launched!");
+
+            var timer = new System.Timers.Timer();
+            timer.Interval = 15 * 1000; //15sec
+            timer.Elapsed += CleanPendingLists;
+        }
+
+        private void CleanPendingLists(object sender, ElapsedEventArgs e)
+        {
+
+
         }
 
         public void ResetServer()
@@ -100,22 +112,21 @@ namespace BattleCampusMatchServer.Services
         /// User must come with proper matchID
         /// </summary>
         /// <param name="user"></param>
-        public void ConnectUser(GameUser user)
+        public bool ConnectUser(GameUser user)
         {
-            Match match;
-
             var hasPendingUser = PendingGameUsers.TryRemove(user, out var pendingMatchID);
 
             if (hasPendingUser == false)
             {
                 _logger.LogError($"No such pending user {user}");
-                return;
+                return false;
             }
 
-            var validMatch = Matches.TryGetValue(user.MatchID, out match);
+            var validMatch = Matches.TryGetValue(user.MatchID, out var match);
 
             if (validMatch == false)
             {
+                //첫번째로 접속하려는 유저가 승격을 시킴. 
                 validMatch = PendingMatches.TryRemove(user.MatchID, out match);
 
                 if (validMatch)
@@ -125,7 +136,7 @@ namespace BattleCampusMatchServer.Services
                 else
                 {
                     _logger.LogError($"Failed to connect {user} as Match {user.MatchID} doesn't exist");
-                    return;
+                    return false;
                 }
             }
 
@@ -137,6 +148,7 @@ namespace BattleCampusMatchServer.Services
             {
                 UserConnections.AddOrUpdate(user, user.ConnectionID, (existingUser, existingConnectionId) =>
                 {
+                    existingUser.MatchID = match.MatchID;
                     //Update connectionId
                     existingUser.ConnectionID = user.ConnectionID;
 
@@ -147,6 +159,8 @@ namespace BattleCampusMatchServer.Services
             {
                 _logger.LogWarning($"Duplicate connection with ID:{user.ConnectionID} and User:{user}");
             }
+
+            return true;
         }
 
         //This is called by server. As server only knows connection Id for the client, GameUser cannot be passed.
@@ -164,6 +178,7 @@ namespace BattleCampusMatchServer.Services
             if (user.MatchID != null)
             {
                 _logger.LogInformation($"Disconnected {user} with connectionID: {connectionID} who was joining {user.MatchID}");
+                user.MatchID = null;
                 RemovePlayerFromMatch(user.MatchID, user);
             }
 
@@ -196,10 +211,28 @@ namespace BattleCampusMatchServer.Services
                 connectedUser.MatchID = null;
             }
 
+            var syncGuid = Guid.NewGuid();
+            user.SyncGuid = syncGuid;
+            var existingUser = PendingGameUsers.Keys.FirstOrDefault(x => x.ID == user.ID);
+
+            if (existingUser != null)
+            {
+                existingUser.SyncGuid = syncGuid;
+            }
+
+            //위에서 싱크 Guid를 바꾸는 도중에 아래 태스크가 유저를 지워버릴 수 있으니,
+            //안전빵으로 넣는다.
             PendingGameUsers.TryAdd(user, matchID);
 
             Task.Delay(8000).ContinueWith(t =>
             {
+                var existingUser = PendingGameUsers.Keys.FirstOrDefault(t => t.ID == user.ID);
+
+                if (existingUser == null || existingUser.SyncGuid != syncGuid)
+                {
+                    return;
+                }
+
                 var userRemoved = PendingGameUsers.TryRemove(user, out var _);
 
                 if (userRemoved)
@@ -212,22 +245,42 @@ namespace BattleCampusMatchServer.Services
             {
                 _logger.LogInformation($"Moved {match} to pending list as no more player is left");
 
+                //위에서 싱크 Guid를 바꾸는 도중에 아래 태스크가 유저를 지워버릴 수 있으니,
+                //안전빵으로 넣는다.
+                PendingGameUsers.TryAdd(user, matchID);
+
                 //Move match to pending list
                 Matches.Remove(matchID, out var _);
+
+                var matchSyncGuid = Guid.NewGuid();
+                user.SyncGuid = matchSyncGuid;
+                var hasPendingMatch = PendingMatches.TryGetValue(matchID, out var existingPendingMatch);
+
+                if (hasPendingMatch)
+                {
+                    existingPendingMatch.SyncGuid = matchSyncGuid;
+                }
+
                 PendingMatches.TryAdd(matchID, match);
 
-                //Remove pending match after 30sec.
                 //이게 기가 막힌 타이밍에 겹치면 새로운 PendingList에 추가하자마자, Remove가 실행되면서, 새롭게 PendingList에 추가된 애를
                 //바로 지워버리고, 이러면 애들이 join을 못하게 된다. 따라서, 단순 매치 ID만 가지고 지우면 안되고, 이 연산에 대한 Guid를 함께 봐야한다.
                 var t = Task.Delay(30000).ContinueWith((t) =>
                 {
+                    var hasPendingMatch = PendingMatches.TryGetValue(matchID, out var existingPendingMatch);
+
+                    if (hasPendingMatch == false || existingPendingMatch.SyncGuid != matchSyncGuid)
+                    {
+                        return;
+                    }
+
                     var hasRemovedMatch = PendingMatches.Remove(matchID, out var deletedMatch);
 
                     if (hasRemovedMatch)
                     {
                         _logger.LogError($"Pending match {deletedMatch} has been removed as no player is joining this match.");
                     }
-                });                
+                });
             }
         }
 
@@ -245,10 +298,10 @@ namespace BattleCampusMatchServer.Services
 
             //Foreach를 쓰면, 리스트 자체가 변경되어서 exception발생
             //Remove all players
-            for (int i = 0; i < match.Players.Count; i++)
-            {
-                RemovePlayerFromMatch(matchID, match.Players[0]);
-            }
+            //for (int i = 0; i < match.Players.Count; i++)
+            //{
+            //    RemovePlayerFromMatch(matchID, match.Players[0]);
+            //}
 
             _logger.LogInformation($"Match {match} is completed!");
         }
@@ -264,6 +317,108 @@ namespace BattleCampusMatchServer.Services
             }
 
             match.HasStarted = true;
+        }
+
+        private bool TryAddToPendingMatches(Match match, string errorMessageOnFail = "")
+        {
+            match.CreatedDate = DateTime.Now;
+            var result = PendingMatches.TryAdd(match.MatchID, match);
+
+            return result;
+        }
+
+        public MatchCreationResult CreateMatch(string name, GameUser host)
+        {
+            if (Matches.Count >= MaxMatches)
+            {
+                _logger.LogError($"Couldn't create match <{name}> as server {this} is already full");
+
+                return new MatchCreationResult
+                {
+                    IsCreationSuccess = false,
+                    CreationFailReason = "Server already full",
+                    Match = null,
+                };
+            }
+
+            //한 서버 인스턴스당으로 매치 메이커가 작동하므로, 한 서버 안에서만 중복 안되면 괜찮기는 함.
+            var matchID = GenerateUniqueMatchID();
+
+            var match = new Match
+            {
+                MatchID = matchID,
+                Name = name,
+                IpPortInfo = IpPortInfo
+            };
+
+            var syncGuid = Guid.NewGuid();
+            host.SyncGuid = syncGuid;
+            match.SyncGuid = syncGuid;
+
+            //이런거 다 private internal method로 추출
+            var userAddResult = PendingGameUsers.TryAdd(host, matchID);
+            if (userAddResult == false)
+            {
+                _logger.LogError($"Failed to add {host} to pending list");
+                return new MatchCreationResult
+                {
+                    IsCreationSuccess = false,
+                    CreationFailReason = $"Failed to add {host} to pending list",
+                };
+            }
+
+            host.MatchID = match.MatchID;
+            //HACK : 이제 호스트 시스템 없어..
+            host.IsHost = false;
+
+            var result = TryAddToPendingMatches(match);
+
+            if (result == false)
+            {
+                _logger.LogError($"Failed to create {match.MatchID}");
+                return new MatchCreationResult
+                {
+                    IsCreationSuccess = false,
+                    CreationFailReason = $"{match.MatchID} is already taken",
+                };
+            }
+
+            _logger.LogInformation($"{host.ID} successfully created match {name} on server {this}");
+
+            //This is for the case where player quits game before he actually enters the GameScene so that BCNetworkManager,
+            //can't detect player enter and exit.
+            Task.Delay(8000).ContinueWith((t) =>
+            {
+                var hasPendingMatch = PendingMatches.TryGetValue(matchID, out var pendingMatch);
+                if (hasPendingMatch == false || pendingMatch.SyncGuid != syncGuid)
+                {
+                    _logger.LogError($"Pending match {pendingMatch} has been removed as host failed to join the game.");
+
+                    return;
+                }
+                else
+                {
+                    PendingMatches.Remove(matchID, out var deletedMatch);
+                }
+
+                var hasPendingUser = PendingGameUsers.Keys.FirstOrDefault(p => p.ID == host.ID && p.SyncGuid == syncGuid) != null;
+
+                if (hasPendingMatch == false)
+                {
+                    _logger.LogError($"Host user {host} has been removed as host failed to join the game.");
+                    return;
+                }
+                else
+                {
+                    PendingGameUsers.Remove(host, out var _);
+                }
+            });
+
+            return new MatchCreationResult
+            {
+                IsCreationSuccess = true,
+                Match = match,
+            };
         }
 
         public MatchJoinResult JoinMatch(string matchID, GameUser user)
@@ -334,87 +489,6 @@ namespace BattleCampusMatchServer.Services
             }
 
             return matchID;
-        }
-
-        public MatchCreationResult CreateMatch(string name, GameUser host)
-        {
-            if (Matches.Count >= MaxMatches)
-            {
-                _logger.LogError($"Couldn't create match <{name}> as server {this} is already full");
-
-                return new MatchCreationResult
-                {
-                    IsCreationSuccess = false,
-                    CreationFailReason = "Server already full",
-                    Match = null,
-                };
-            }
-
-            //한 서버 인스턴스당으로 매치 메이커가 작동하므로, 한 서버 안에서만 중복 안되면 괜찮기는 함.
-            var matchID = GenerateUniqueMatchID();
-
-            var match = new Match
-            {
-                MatchID = matchID,
-                Name = name,
-                IpPortInfo = IpPortInfo
-            };
-
-            //이런거 다 private internal method로 추출
-            var userAddResult = PendingGameUsers.TryAdd(host, matchID);
-            if (userAddResult == false)
-            {
-                _logger.LogError($"Failed to add {host} to pending list");
-                return new MatchCreationResult
-                {
-                    IsCreationSuccess = false,
-                    CreationFailReason = $"Failed to add {host} to pending list",
-                };
-            }
-            //match.Players.Add(host);
-
-            host.MatchID = match.MatchID;
-
-            //HACK : 이제 호스트 시스템 없어..
-            host.IsHost = false;
-
-            var result = PendingMatches.TryAdd(match.MatchID, match);
-
-            if (result == false)
-            {
-                _logger.LogError($"Failed to create {match.MatchID}");
-                return new MatchCreationResult
-                {
-                    IsCreationSuccess = false,
-                    CreationFailReason = $"{match.MatchID} is already taken",
-                };
-            }
-
-            _logger.LogInformation($"{host.ID} successfully created match {name} on server {this}");
-
-            //This is for the case where player quits game before he actually enters the GameScene so that BCNetworkManager,
-            //can't detect player enter and exit.
-            Task.Delay(8000).ContinueWith((t) =>
-            {
-                var hasRemovedUser = PendingGameUsers.Remove(host, out var _);
-                var hasRemoved = PendingMatches.Remove(matchID, out var deletedMatch);
-
-                if (hasRemovedUser)
-                {
-                    _logger.LogError($"Host user {host} has been removed as host failed to join the game.");
-                }
-
-                if (hasRemoved)
-                {
-                    _logger.LogError($"Match {deletedMatch} has been removed as host failed to join the game.");
-                }
-            });
-
-            return new MatchCreationResult
-            {
-                IsCreationSuccess = true,
-                Match = match,
-            };
         }
 
         /// <summary>

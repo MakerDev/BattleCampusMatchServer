@@ -10,6 +10,8 @@ namespace BattleCampus.Core
         public IpPortInfo IpPortInfo { get; set; }
         public int MaxPlayers { get; set; } = 6;
         public bool HasStarted { get; set; } = false;
+        public Guid SyncGuid { get; set; } = Guid.NewGuid();
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
 
         //TODO: make this concurrent list?
         public List<GameUser> Players { get; set; } = new List<GameUser>();

@@ -14,6 +14,8 @@ namespace BattleCampus.Core
         public string StudentID { get; set; }
         public string Name { get; set; }
         public bool IsHost { get; set; } = false;
+        public Guid SyncGuid { get; set; } = Guid.NewGuid();
+        public DateTime CreatedTime { get; set; } = DateTime.Now;
         /// <summary>
         /// currently joining match id
         /// </summary>
