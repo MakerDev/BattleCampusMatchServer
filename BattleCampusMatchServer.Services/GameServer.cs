@@ -62,9 +62,9 @@ namespace BattleCampusMatchServer.Services
             _logger = loggerFactory.CreateLogger<GameServer>();
             _logger.LogInformation($"GameServer : {this} has been launched!");
 
-            var timer = new System.Timers.Timer();
-            timer.Interval = 15 * 1000; //15sec
-            timer.Elapsed += CleanPendingLists;
+            //var timer = new System.Timers.Timer();
+            //timer.Interval = 15 * 1000; //15sec
+            //timer.Elapsed += CleanPendingLists;
         }
 
         private void CleanPendingLists(object sender, ElapsedEventArgs e)
@@ -114,7 +114,7 @@ namespace BattleCampusMatchServer.Services
         /// <param name="user"></param>
         public bool ConnectUser(GameUser user)
         {
-            var hasPendingUser = PendingGameUsers.TryRemove(user, out var pendingMatchID);
+            var hasPendingUser = PendingGameUsers.TryGetValue(user, out var pendingMatchID);
 
             if (hasPendingUser == false)
             {
@@ -127,10 +127,10 @@ namespace BattleCampusMatchServer.Services
             if (validMatch == false)
             {
                 //첫번째로 접속하려는 유저가 승격을 시킴. 
-                validMatch = PendingMatches.TryRemove(user.MatchID, out match);
-
+                validMatch = PendingMatches.TryGetValue(user.MatchID, out match);
                 if (validMatch)
                 {
+                    _logger.LogWarning($"Got from {match} from pending match");
                     Matches.TryAdd(user.MatchID, match);
                 }
                 else
@@ -138,6 +138,10 @@ namespace BattleCampusMatchServer.Services
                     _logger.LogError($"Failed to connect {user} as Match {user.MatchID} doesn't exist");
                     return false;
                 }
+            }
+            else
+            {
+                _logger.LogWarning($"Got from {match} from normal match list");
             }
 
             match.Players.Add(user);
@@ -178,11 +182,90 @@ namespace BattleCampusMatchServer.Services
             if (user.MatchID != null)
             {
                 _logger.LogInformation($"Disconnected {user} with connectionID: {connectionID} who was joining {user.MatchID}");
-                user.MatchID = null;
                 RemovePlayerFromMatch(user.MatchID, user);
+                user.MatchID = null;
             }
 
             UserConnections.TryRemove(user, out var _);
+        }
+
+        private bool TryRemovePendingUserByID(Guid id, out GameUser removedUser)
+        {
+            var pendingUser = PendingGameUsers.Keys.FirstOrDefault(p => p.ID == id);
+
+            if (pendingUser == null)
+            {
+                removedUser = null;
+                return false;
+            }
+
+            var timespan = DateTime.Now - pendingUser.CreatedTime;
+
+            if (timespan.TotalSeconds >= 10)
+            {
+                PendingGameUsers.TryRemove(pendingUser, out var _);
+
+                removedUser = pendingUser;
+                return true;
+            }
+
+            removedUser = null;
+            return false;
+        }
+        private bool TryRemovePendingMatch(string matchID, out Match removedMatch)
+        {
+            var hasPendingMatch = PendingMatches.TryGetValue(matchID, out var pendingMatch);
+            if (hasPendingMatch == false)
+            {
+                removedMatch = null;
+                return false;
+            }
+
+            var timespan = DateTime.Now - pendingMatch.CreatedDate;
+            if (timespan.TotalSeconds >= 10)
+            {
+                PendingMatches.TryRemove(matchID, out removedMatch);
+                return true;
+            }
+
+            removedMatch = null;
+            return false;
+        }
+
+        private bool TryAddToPendingMatches(Match match)
+        {
+            match.CreatedDate = DateTime.Now;
+
+            var alreadyHasMatch = PendingMatches.TryGetValue(match.MatchID, out var pendingMatch);
+
+            //Update if already exists.
+            if (alreadyHasMatch)
+            {
+                pendingMatch.CreatedDate = DateTime.Now;
+                return true;
+            }
+
+            var result = PendingMatches.TryAdd(match.MatchID, match);
+
+            return result;
+        }
+
+        private bool TryAddToPendingUsers(GameUser user, string matchID)
+        {
+            user.CreatedTime = DateTime.Now;
+
+            var pendingUser = PendingGameUsers.Keys.FirstOrDefault(p => p.ID == user.ID);
+
+            //Update if already exists.
+            if (pendingUser != null)
+            {
+                pendingUser.CreatedTime = DateTime.Now;
+                return true;
+            }
+
+            var result = PendingGameUsers.TryAdd(user, matchID);
+
+            return result;
         }
 
         private void RemovePlayerFromMatch(string matchID, GameUser user)
@@ -211,70 +294,40 @@ namespace BattleCampusMatchServer.Services
                 connectedUser.MatchID = null;
             }
 
-            var syncGuid = Guid.NewGuid();
-            user.SyncGuid = syncGuid;
-            var existingUser = PendingGameUsers.Keys.FirstOrDefault(x => x.ID == user.ID);
+            TryAddToPendingUsers(user, matchID);
 
-            if (existingUser != null)
+            Task.Delay(15000).ContinueWith(t =>
             {
-                existingUser.SyncGuid = syncGuid;
-            }
+                var removeSucess = TryRemovePendingUserByID(user.ID, out var removedUser);
 
-            //위에서 싱크 Guid를 바꾸는 도중에 아래 태스크가 유저를 지워버릴 수 있으니,
-            //안전빵으로 넣는다.
-            PendingGameUsers.TryAdd(user, matchID);
-
-            Task.Delay(8000).ContinueWith(t =>
-            {
-                var existingUser = PendingGameUsers.Keys.FirstOrDefault(t => t.ID == user.ID);
-
-                if (existingUser == null || existingUser.SyncGuid != syncGuid)
+                if (removeSucess)
                 {
-                    return;
-                }
-
-                var userRemoved = PendingGameUsers.TryRemove(user, out var _);
-
-                if (userRemoved)
-                {
-                    _logger.LogError($"Removed pending user {user} as he failed to re-join to match {matchID}");
+                    _logger.LogError($"Removed pending user {removedUser} as he failed to re-join to match {matchID}");
                 }
             });
 
             if (match.CurrentPlayersCount <= 0)
             {
-                _logger.LogInformation($"Moved {match} to pending list as no more player is left");
-
                 //위에서 싱크 Guid를 바꾸는 도중에 아래 태스크가 유저를 지워버릴 수 있으니,
                 //안전빵으로 넣는다.
                 PendingGameUsers.TryAdd(user, matchID);
 
                 //Move match to pending list
                 Matches.Remove(matchID, out var _);
+                var result = TryAddToPendingMatches(match);
 
-                var matchSyncGuid = Guid.NewGuid();
-                user.SyncGuid = matchSyncGuid;
-                var hasPendingMatch = PendingMatches.TryGetValue(matchID, out var existingPendingMatch);
-
-                if (hasPendingMatch)
+                if (result)
                 {
-                    existingPendingMatch.SyncGuid = matchSyncGuid;
+                    _logger.LogInformation($"Moved {match} to pending list as no more player is left");
+                }
+                else
+                {
+                    _logger.LogInformation($"Failed to move {match} to pending list.");
                 }
 
-                PendingMatches.TryAdd(matchID, match);
-
-                //이게 기가 막힌 타이밍에 겹치면 새로운 PendingList에 추가하자마자, Remove가 실행되면서, 새롭게 PendingList에 추가된 애를
-                //바로 지워버리고, 이러면 애들이 join을 못하게 된다. 따라서, 단순 매치 ID만 가지고 지우면 안되고, 이 연산에 대한 Guid를 함께 봐야한다.
-                var t = Task.Delay(30000).ContinueWith((t) =>
+                var t = Task.Delay(15000).ContinueWith((t) =>
                 {
-                    var hasPendingMatch = PendingMatches.TryGetValue(matchID, out var existingPendingMatch);
-
-                    if (hasPendingMatch == false || existingPendingMatch.SyncGuid != matchSyncGuid)
-                    {
-                        return;
-                    }
-
-                    var hasRemovedMatch = PendingMatches.Remove(matchID, out var deletedMatch);
+                    var hasRemovedMatch = TryRemovePendingMatch(matchID, out var deletedMatch);
 
                     if (hasRemovedMatch)
                     {
@@ -319,14 +372,6 @@ namespace BattleCampusMatchServer.Services
             match.HasStarted = true;
         }
 
-        private bool TryAddToPendingMatches(Match match, string errorMessageOnFail = "")
-        {
-            match.CreatedDate = DateTime.Now;
-            var result = PendingMatches.TryAdd(match.MatchID, match);
-
-            return result;
-        }
-
         public MatchCreationResult CreateMatch(string name, GameUser host)
         {
             if (Matches.Count >= MaxMatches)
@@ -348,15 +393,13 @@ namespace BattleCampusMatchServer.Services
             {
                 MatchID = matchID,
                 Name = name,
-                IpPortInfo = IpPortInfo
+                IpPortInfo = IpPortInfo,
+                CreatedDate = DateTime.Now
             };
 
-            var syncGuid = Guid.NewGuid();
-            host.SyncGuid = syncGuid;
-            match.SyncGuid = syncGuid;
 
             //이런거 다 private internal method로 추출
-            var userAddResult = PendingGameUsers.TryAdd(host, matchID);
+            var userAddResult = TryAddToPendingUsers(host, matchID);
             if (userAddResult == false)
             {
                 _logger.LogError($"Failed to add {host} to pending list");
@@ -389,28 +432,18 @@ namespace BattleCampusMatchServer.Services
             //can't detect player enter and exit.
             Task.Delay(8000).ContinueWith((t) =>
             {
-                var hasPendingMatch = PendingMatches.TryGetValue(matchID, out var pendingMatch);
-                if (hasPendingMatch == false || pendingMatch.SyncGuid != syncGuid)
+                var pendingMatchRemoveResult = TryRemovePendingMatch(matchID, out var pendingMatch);
+
+                if (pendingMatchRemoveResult)
                 {
                     _logger.LogError($"Pending match {pendingMatch} has been removed as host failed to join the game.");
-
-                    return;
-                }
-                else
-                {
-                    PendingMatches.Remove(matchID, out var deletedMatch);
                 }
 
-                var hasPendingUser = PendingGameUsers.Keys.FirstOrDefault(p => p.ID == host.ID && p.SyncGuid == syncGuid) != null;
+                var userRemoveResult = TryRemovePendingUserByID(host.ID, out var pendingUser);
 
-                if (hasPendingMatch == false)
+                if (userRemoveResult)
                 {
-                    _logger.LogError($"Host user {host} has been removed as host failed to join the game.");
-                    return;
-                }
-                else
-                {
-                    PendingGameUsers.Remove(host, out var _);
+                    _logger.LogError($"Pending User {pendingUser} has beed removed as he failed to join game {matchID}.");
                 }
             });
 
