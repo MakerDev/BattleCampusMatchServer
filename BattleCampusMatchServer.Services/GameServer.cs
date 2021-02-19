@@ -449,7 +449,7 @@ namespace BattleCampusMatchServer.Services
                 };
             }
 
-            _logger.LogInformation($"{host.ID} successfully created match {name} on server {this}");
+            _logger.LogInformation($"{host.ID} successfully created match {match} on server {this}");
 
             //This is for the case where player quits game before he actually enters the GameScene so that BCNetworkManager,
             //can't detect player enter and exit.
