@@ -255,8 +255,8 @@ namespace BattleCampusMatchServer.Services
                 return;
             }
 
-
-            var result = Servers.TryRemove(ipPortInfo, out var _);
+            //TODO : 없애지 말고 상태를 off로 해
+            var result = Servers.TryRemove(ipPortInfo, out var server);
 
             if (result == false)
             {
@@ -265,7 +265,6 @@ namespace BattleCampusMatchServer.Services
 
             serverModel.State = ServerState.Off;
             await _dbContext.SaveChangesAsync();
-            Servers.Remove(ipPortInfo, out var server);
 
             _logger.LogInformation($"Turned off {server}");
         }

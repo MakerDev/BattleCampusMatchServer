@@ -114,5 +114,13 @@ namespace BattleCampusMatchServer.Controllers
 
             return Ok();
         }
+
+        [HttpPost("sync")]
+        public async Task<ActionResult> SyncConnectionsAsync(SyncConnections.Command command)
+        {
+            await _mediator.Send(command);
+
+            return Ok();
+        }
     }
 }

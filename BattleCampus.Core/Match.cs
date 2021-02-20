@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace BattleCampus.Core
@@ -13,7 +14,8 @@ namespace BattleCampus.Core
         public DateTime CreatedDate { get; set; } = DateTime.Now;
 
         //TODO: make this concurrent list?
-        public List<GameUser> Players { get; set; } = new List<GameUser>();
+        public ConcurrentDictionary<int, GameUser> Players { get; set; } = new ConcurrentDictionary<int, GameUser>();
+
         public int CurrentPlayersCount
         {
             get

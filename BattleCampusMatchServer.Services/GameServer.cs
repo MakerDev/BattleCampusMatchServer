@@ -153,7 +153,7 @@ namespace BattleCampusMatchServer.Services
                 validMatch = PendingMatches.TryGetValue(user.MatchID, out match);
                 if (validMatch)
                 {
-                    _logger.LogWarning($"Got from {match} from pending match");
+                    _logger.LogInformation($"Got from {match} from pending match");
                     Matches.TryAdd(user.MatchID, match);
                 }
                 else
@@ -164,10 +164,10 @@ namespace BattleCampusMatchServer.Services
             }
             else
             {
-                _logger.LogWarning($"Got from {match} from normal match list");
+                _logger.LogInformation($"Got from {match} from normal match list");
             }
 
-            match.Players.Add(user);
+            match.Players.TryAdd(user.ConnectionID, user);
 
             _logger.LogInformation($"{user} is connected with connectionID : {user.ConnectionID} who is joining {match}");
 
@@ -214,6 +214,30 @@ namespace BattleCampusMatchServer.Services
             }
 
             UserConnections.TryRemove(user, out var _);
+        }
+
+        /// <summary>
+        /// This is for deleting users who are not actually connected to the game server but remains to be 
+        /// stored as connected in match server for some bugs.
+        /// </summary>
+        /// <param name="currentServerConnectionIDs"></param>
+        public void SyncCurrentConnections(List<int> currentServerConnectionIDs)
+        {
+            var userConnection = UserConnections.Values.ToList();
+            var i = 0;
+
+            while (i<UserConnections.Count)
+            {
+                //If the game server doesn't have this connection ID connected anymore, disconnect.
+                if (currentServerConnectionIDs.Contains(userConnection[i]) == false)
+                {
+                    DisconnectUser(userConnection[i]);
+                }
+                else
+                {
+                    i++;
+                }
+            }
         }
 
         private bool TryRemovePendingUserByID(Guid id, out GameUser removedUser)
@@ -305,19 +329,12 @@ namespace BattleCampusMatchServer.Services
                 return;
             }
 
-            var player = match.Players.FirstOrDefault((x) => x.ID == user.ID);
-
-            if (player == null)
-            {
-                _logger.LogError($"Failed to find user {user}");
-                return;
-            }
-
-            var removeResult = match.Players.Remove(player);
+            var removeResult = match.Players.TryRemove(user.ConnectionID, out var player);
+            _logger.LogWarning($"Remove {user} from {match}.");
 
             if (removeResult == false)
             {
-                _logger.LogError($"{user} tried to exit {match} which he is not joining");
+                _logger.LogError($"{user} tried to exit {match} which he is not joining.");
             }
 
             //Move player to pending list.
